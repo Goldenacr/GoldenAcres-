@@ -76,7 +76,7 @@ const LoginPage = () => {
                 >
                     <div className="text-center">
                         <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
-                        <p className="mt-2 text-gray-600">Sign in to continue to Agrivil.</p>
+                        <p className="mt-2 text-gray-600">Sign in to continue to Golden Acres.</p>
                     </div>
 
                     <form className="space-y-6" onSubmit={handleLogin}>
