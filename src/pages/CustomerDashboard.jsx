@@ -1,152 +1,48 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Package, ShoppingBag, ArrowRight, CheckCircle, Truck, Warehouse, Home as HomeIcon, ChevronDown, ChevronUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Loader2, Package, User, Home, LogOut, Settings } from 'lucide-react';
 
-const orderStatusSteps = [
-    { name: 'Order Placed', icon: CheckCircle },
-    { name: 'Rider Dispatched to Farm', icon: ArrowRight },
-    { name: 'Products Picked Up', icon: Warehouse },
-    { name: 'Out for Delivery', icon: Truck },
-    { name: 'Delivered', icon: HomeIcon }
-];
-
-const StatusTimeline = ({ currentStatus }) => {
-    const currentIndex = orderStatusSteps.findIndex(s => s.name === currentStatus);
-    
-    if (currentStatus === 'Cancelled') {
-        return (
-            <div className="text-center py-4 text-red-600 font-bold border-2 border-dashed border-red-300 rounded-lg">
-                This order has been cancelled.
-            </div>
-        )
-    }
-
-    return (
-        <div className="flex items-center justify-between mt-4 overflow-x-auto pb-4">
-            {orderStatusSteps.map((status, index) => {
-                const isActive = index <= currentIndex;
-                const isCurrent = index === currentIndex;
-                const Icon = status.icon;
-                return (
-                    <React.Fragment key={status.name}>
-                        <div className="flex flex-col items-center text-center px-2">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                <Icon className="w-5 h-5" />
-                            </div>
-                            <p className={`text-xs mt-2 w-20 ${isCurrent ? 'font-bold text-primary' : 'text-gray-500'}`}>{status.name}</p>
-                        </div>
-                        {index < orderStatusSteps.length - 1 && (
-                            <div className={`flex-1 h-1 mx-2 transition-all duration-300 min-w-[20px] ${index < currentIndex ? 'bg-primary' : 'bg-gray-200'}`}></div>
-                        )}
-                    </React.Fragment>
-                );
-            })}
-        </div>
-    );
-};
-
-const OrderCard = ({ order }) => {
-    const [isDetailsVisible, setIsDetailsVisible] = useState(false);
-
-    return (
-        <div className="bg-card/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                <div>
-                    <p className="text-sm text-gray-500">Order ID: <span className="font-mono">{order.id.substring(0, 8)}</span></p>
-                    <p className="text-sm text-gray-500">Date: {new Date(order.created_at).toLocaleDateString()}</p>
-                </div>
-                <div className="mt-2 sm:mt-0 text-left sm:text-right">
-                    <p className="font-semibold text-lg">Total: GHS {Number(order.total_amount).toLocaleString()}</p>
-                </div>
-            </div>
-            
-            <div className="pt-4 border-t">
-                <h4 className="font-semibold mb-2">Order Status:</h4>
-                <StatusTimeline currentStatus={order.status} />
-            </div>
-
-            <div className="mt-4">
-                <Button variant="link" onClick={() => setIsDetailsVisible(!isDetailsVisible)} className="p-0 h-auto text-primary">
-                    {isDetailsVisible ? 'Hide Details' : 'View Details & Tracking History'}
-                    {isDetailsVisible ? <ChevronUp className="w-4 h-4 ml-2" /> : <ChevronDown className="w-4 h-4 ml-2" />}
-                </Button>
-            </div>
-            
-            <AnimatePresence>
-            {isDetailsVisible && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                >
-                    <div className="flex flex-col md:flex-row gap-8 mt-4 pt-4 border-t">
-                        <div className="flex-1">
-                             <h4 className="font-semibold mb-3">Items Ordered:</h4>
-                             <div className="space-y-4 max-h-48 overflow-y-auto pr-2">
-                                {order.order_items.map(item => (
-                                    <div key={item.id} className="flex items-center space-x-4">
-                                        <img src={item.products?.image_url || 'https://placehold.co/100x100'} alt={item.product_name} className="w-12 h-12 rounded-md object-cover border"/>
-                                        <div>
-                                            <p className="font-semibold text-sm">{item.product_name}</p>
-                                            <p className="text-xs text-gray-600">Qty: {item.quantity} x GHS {Number(item.price).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex-1">
-                             <h4 className="font-semibold mb-3">Tracking History:</h4>
-                              <div className="space-y-4">
-                                {order.order_status_history.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).map(history => (
-                                    <div key={history.id} className="flex items-start">
-                                        <div className="w-5 h-5 bg-primary rounded-full mt-1 mr-4 border-4 border-card"></div>
-                                        <div>
-                                            <p className="font-semibold text-sm">{history.status}</p>
-                                            <p className="text-xs text-gray-500">{new Date(history.created_at).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-            </AnimatePresence>
-        </div>
-    );
-};
+const FancyLoader = () => (
+    <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+    </div>
+);
 
 const CustomerDashboard = () => {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading, signOut } = useAuth();
+    const navigate = useNavigate();
     const { toast } = useToast();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const fetchOrders = useCallback(async () => {
         if (!user) return;
+        setLoading(true);
         const { data, error } = await supabase
             .from('orders')
             .select(`
                 *,
                 order_items (
-                    *,
-                    products ( name, image_url )
-                ),
-                order_status_history (*)
+                    product_name,
+                    quantity,
+                    price
+                )
             `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
         if (error) {
-            toast({ variant: 'destructive', title: 'Error fetching orders', description: error.message });
+            toast({
+                variant: 'destructive',
+                title: 'Error fetching orders',
+                description: error.message,
+            });
         } else {
             setOrders(data);
         }
@@ -154,66 +50,133 @@ const CustomerDashboard = () => {
     }, [user, toast]);
 
     useEffect(() => {
-        setLoading(true);
-        fetchOrders();
-        
-        const orderChannel = supabase.channel('customer-orders-channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user?.id}` }, payload => {
+        if (!authLoading) {
+            if (!user) {
+                navigate('/login');
+            } else {
                 fetchOrders();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'order_status_history' }, payload => {
-                // Check if the changed history belongs to one of the user's orders
-                const changedOrderId = payload.new.order_id;
-                if(orders.some(o => o.id === changedOrderId)) {
-                    fetchOrders();
-                }
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(orderChannel);
+            }
         }
-    }, [user, fetchOrders]);
+    }, [user, authLoading, navigate, fetchOrders]);
 
-    if (loading) {
-        return (
-            <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center bg-transparent">
-                <Loader2 className="w-12 h-12 animate-spin text-primary" />
-            </div>
-        );
+    const handleLogout = async () => {
+        await signOut();
+        navigate('/');
+    };
+
+    if (authLoading || loading) {
+        return <FancyLoader />;
     }
 
-  return (
-    <>
-      <Helmet>
-        <title>My Dashboard - Golden Acres</title>
-        <meta name="description" content="View your order history and manage your Golden Acres account." />
-      </Helmet>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">Welcome, {profile?.full_name || 'Customer'}!</h1>
-            <p className="text-lg text-gray-600">Here's a summary of your recent activity.</p>
-        </div>
-        
-        <h2 className="text-2xl font-bold mb-6 flex items-center"><ShoppingBag className="w-6 h-6 mr-3 text-primary"/>Your Order History</h2>
-        
-        {orders.length > 0 ? (
-            <div className="space-y-8">
-                {orders.map(order => <OrderCard key={order.id} order={order} />)}
+    return (
+        <>
+            <Helmet>
+                <title>My Dashboard - Golden Acres</title>
+            </Helmet>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold">Welcome, {profile?.full_name || user?.email}!</h1>
+                        <p className="text-gray-600 mt-1">Here's an overview of your account and recent orders.</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button asChild variant="outline">
+                            <Link to="/">
+                                <Home className="h-4 w-4 mr-2" />
+                                Home
+                            </Link>
+                        </Button>
+                        <Button variant="destructive" onClick={handleLogout}>
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Logout
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{orders.length}</div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium">Profile Status</CardTitle>
+                            <User className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-green-500">Active</div>
+                            <p className="text-xs text-muted-foreground">
+                                All systems normal
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-red-100 bg-red-50/50">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-red-900">Account Actions</CardTitle>
+                            <Settings className="h-4 w-4 text-red-500" />
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-2">
+                            <Button variant="destructive" className="w-full" onClick={handleLogout}>
+                                <LogOut className="h-4 w-4 mr-2" />
+                                Sign Out
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <h2 className="text-2xl font-semibold mb-4">My Orders</h2>
+                <Card className="bg-card/80 backdrop-blur-sm border">
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full">
+                                <thead className="bg-gray-50/50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white/30 divide-y divide-gray-200">
+                                    {orders.map(order => (
+                                        <tr key={order.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono">{order.id.substring(0, 8)}...</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(order.created_at).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">GHS {order.total_amount}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <Button asChild variant="outline" size="sm">
+                                                    <Link to={`/track-order/${order.id}`}>Track Order</Link>
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                         {orders.length === 0 && (
+                            <div className="text-center py-12">
+                                <p className="text-gray-500">You haven't placed any orders yet.</p>
+                                <Button asChild className="mt-4">
+                                    <Link to="/marketplace">Start Shopping</Link>
+                                </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
-        ) : (
-            <div className="text-center py-16 bg-card/80 backdrop-blur-sm rounded-xl border">
-                <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h2 className="text-2xl font-semibold text-gray-700">No orders yet</h2>
-                <p className="text-gray-500 mt-2 mb-6">You haven't placed any orders. Let's change that!</p>
-                 <Button asChild className="bg-primary hover:bg-primary/90">
-                    <Link to="/marketplace">Start Shopping</Link>
-                </Button>
-            </div>
-        )}
-      </div>
-    </>
-  );
+        </>
+    );
 };
 
 export default CustomerDashboard;

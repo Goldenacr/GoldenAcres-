@@ -1,199 +1,251 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Helmet } from 'react-helmet';
-import { supabase } from '@/lib/customSupabaseClient';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Trash2, Edit, Upload } from 'lucide-react';
+import { PlusCircle, Home, Loader2, Info, ShieldCheck, MessageCircle, Search, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Input } from '@/components/ui/input';
+import { supabase } from '@/lib/customSupabaseClient';
+import ProductsTab from '@/components/admin/ProductsTab';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const FarmerDashboard = () => {
-  const { user } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
-  const [products, setProducts] = useState([]);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState([]);
+  const [farmers, setFarmers] = useState([]); // Needed for product modal dropdown
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState(null);
-  const [productName, setProductName] = useState('');
-  const [productDesc, setProductDesc] = useState('');
-  const [productPrice, setProductPrice] = useState('');
-  const [productStock, setProductStock] = useState('');
-  const [productUnit, setProductUnit] = useState('');
-  const [productImageFile, setProductImageFile] = useState(null);
-
-  const fetchProducts = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('farmer_id', user.id);
-    
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error fetching products', description: error.message });
-    } else {
-      setProducts(data);
+  const fetchFarmerData = useCallback(async () => {
+    if (!profile || profile.role !== 'farmer') {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }, [user, toast]);
+    setLoading(true);
+    try {
+      const [productsRes, farmersRes] = await Promise.all([
+          supabase
+              .from('products')
+              .select(`*, farmer:profiles(full_name, id)`)
+              .eq('farmer_id', profile.id),
+          supabase
+              .from('profiles')
+              .select('id, full_name')
+              .eq('role', 'farmer')
+      ]);
+
+      if (productsRes.error) throw productsRes.error;
+      setProducts(productsRes.data);
+
+      if (farmersRes.error) throw farmersRes.error;
+      setFarmers(farmersRes.data);
+
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to fetch data',
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [profile, toast]);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchFarmerData();
+  }, [fetchFarmerData]);
 
-  const handleModalOpen = (product) => {
-    if (product) {
-      setCurrentProduct(product);
-      setProductName(product.name);
-      setProductDesc(product.description);
-      setProductPrice(product.price);
-      setProductStock(product.stock);
-      setProductUnit(product.unit);
+  const handleLogout = async () => {
+      await signOut();
+      navigate('/');
+  };
+
+  const handleProductSave = () => {
+    toast({ title: "Product saved successfully!" });
+    fetchFarmerData();
+  };
+
+  const handleProductDelete = async (product) => {
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', product.id);
+      if (error) throw error;
+      toast({ title: "Product deleted successfully." });
+      fetchFarmerData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Failed to delete product', description: error.message });
+    }
+  };
+
+  const filteredProducts = useMemo(() => {
+    if (!debouncedSearchTerm) return products;
+    return products.filter(p => p.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+  }, [products, debouncedSearchTerm]);
+
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (profile && profile.role !== 'farmer') {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-4">
+        <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+        <p className="text-gray-600">You do not have permission to view the farmer dashboard.</p>
+        <Link to="/" className="mt-6">
+          <Button>Go to Homepage</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const isVerified = profile?.is_verified;
+
+  const AddProductButton = () => {
+    if (!isVerified) {
+      const whatsAppNumber = "233557488116";
+      const shortUserId = user?.id ? user.id.split('-')[0] : 'N/A';
+      const prefilledMessage = `Hello Golden Acres, I would like to verify my farmer account.\n\nMy Name: ${profile?.full_name || 'N/A'}\nUser ID: ${shortUserId}`;
+      const encodedMessage = encodeURIComponent(prefilledMessage);
+      const whatsAppUrl = `https://wa.me/${whatsAppNumber}?text=${encodedMessage}`;
+
+      return (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white">
+              <PlusCircle className="h-4 w-4 mr-2" /> Add Product
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="max-w-md bg-gray-50 border-none shadow-2xl rounded-2xl p-0">
+             <div className="p-8 text-center">
+                <motion.div 
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                    className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-br from-yellow-300 to-orange-400 mb-6 shadow-lg"
+                >
+                    <ShieldCheck className="h-12 w-12 text-white" />
+                </motion.div>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-2xl font-bold text-gray-800">
+                        Account Verification Required
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-gray-600 mt-2 text-base">
+                        To add products and start selling, your account needs to be verified by our team.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <p className="text-sm text-gray-500 mt-4">
+                    Click the button below to send us a verification request on WhatsApp.
+                </p>
+                
+                <a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" className="inline-block w-full mt-6">
+                    <Button noHover className="w-full bg-green-500 hover:bg-green-600 text-white text-base py-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                        <MessageCircle className="h-5 w-5 mr-3" />
+                        Verify via WhatsApp
+                    </Button>
+                </a>
+            </div>
+
+            <AlertDialogFooter className="bg-gray-100 p-4 rounded-b-2xl">
+              <AlertDialogCancel asChild>
+                <Button variant="ghost" className="w-full">Close</Button>
+              </AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      );
     } else {
-      setCurrentProduct(null);
-      setProductName('');
-      setProductDesc('');
-      setProductPrice('');
-      setProductStock('');
-      setProductUnit('');
-    }
-    setProductImageFile(null);
-    setIsModalOpen(true);
-  };
-  
-  const handleSubmit = async () => {
-    if (!user) return;
-    let imageUrl = currentProduct?.image_url;
-
-    if (productImageFile) {
-        const fileExt = productImageFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-            .from('product_images')
-            .upload(filePath, productImageFile);
-
-        if (uploadError) {
-            toast({ variant: 'destructive', title: 'Image upload failed', description: uploadError.message });
-            return;
-        }
-
-        const { data: urlData } = supabase.storage.from('product_images').getPublicUrl(filePath);
-        imageUrl = urlData.publicUrl;
-    }
-    
-    const productData = {
-        name: productName,
-        description: productDesc,
-        price: productPrice,
-        stock: productStock,
-        unit: productUnit,
-        farmer_id: user.id,
-        image_url: imageUrl,
-    };
-
-    const { error } = currentProduct
-      ? await supabase.from('products').update(productData).eq('id', currentProduct.id)
-      : await supabase.from('products').insert(productData);
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Failed to save product', description: error.message });
-    } else {
-      toast({ title: 'Product saved successfully!' });
-      setIsModalOpen(false);
-      fetchProducts();
+      return null;
     }
   };
 
-  const deleteProduct = async (productId) => {
-     if (!window.confirm('Are you sure you want to delete this product?')) return;
-     const { error } = await supabase.from('products').delete().eq('id', productId);
-     if (error) {
-        toast({ variant: 'destructive', title: 'Failed to delete product', description: error.message });
-     } else {
-        toast({ title: 'Product deleted successfully' });
-        fetchProducts();
-     }
-  };
-  
-  if (loading) return <div className="text-center py-10">Loading Your Dashboard...</div>;
 
   return (
-    <>
-      <Helmet>
-        <title>Farmer Dashboard - Agrivil</title>
-        <meta name="description" content="Manage your products and view sales." />
-      </Helmet>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Your Products</h1>
-            <Button onClick={() => handleModalOpen(null)}>Add New Product</Button>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8">
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4"
+      >
+        <h1 className="text-3xl font-bold text-gray-800">
+          Your Products
+        </h1>
+        <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {!isVerified && <AddProductButton />}
+            </AnimatePresence>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link to="/" className="flex items-center">
+                <Home className="h-4 w-4 mr-2" /> Home
+              </Link>
+            </Button>
+            <Button variant="destructive" onClick={handleLogout} className="w-full sm:w-auto">
+                <LogOut className="h-4 w-4 mr-2" /> Logout
+            </Button>
         </div>
-        
-        <div className="bg-white shadow rounded-lg overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {products.length > 0 ? products.map(product => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">UGX {product.price}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.stock} {product.unit}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleModalOpen(product)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteProduct(product.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan="4" className="text-center py-10 text-gray-500">You haven't added any products yet.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-      </div>
-      
-       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{currentProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-              <Input placeholder="Product Name (e.g., Fresh Tomatoes)" value={productName} onChange={e => setProductName(e.target.value)} />
-              <Input placeholder="Description" value={productDesc} onChange={e => setProductDesc(e.target.value)} />
-              <Input placeholder="Price (UGX)" type="number" value={productPrice} onChange={e => setProductPrice(e.target.value)} />
-              <Input placeholder="Stock" type="number" value={productStock} onChange={e => setProductStock(e.target.value)} />
-              <Input placeholder="Unit (e.g., kg, bunch, item)" value={productUnit} onChange={e => setProductUnit(e.target.value)} />
-               <label className="flex items-center space-x-2 cursor-pointer text-sm">
-                    <Upload className="w-5 h-5" />
-                    <span>{productImageFile ? productImageFile.name : 'Upload Image'}</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={e => setProductImageFile(e.target.files[0])} />
-                </label>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit}>Save Product</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      </motion.div>
+
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        {isVerified ? (
+            <>
+                <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by product name..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <ProductsTab 
+                    products={filteredProducts} 
+                    farmers={farmers} 
+                    onAdd={handleProductSave} 
+                    onEdit={handleProductSave} 
+                    onDelete={handleProductDelete} 
+                    isFarmerView={true}
+                />
+            </>
+        ) : (
+            <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg mt-4">
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0}} 
+                animate={{ scale: 1, opacity: 1}} 
+                transition={{delay: 0.3}}
+                className="flex justify-center mb-4"
+              >
+                <Info className="h-12 w-12 text-gray-400" />
+              </motion.div>
+              <h3 className="text-xl font-semibold text-gray-700">Verification Pending</h3>
+              <p className="text-lg text-gray-600 mt-2">Your product management dashboard will appear here once your account is verified.</p>
+              <p className="text-gray-500 mt-2">Thank you for your patience!</p>
+            </div>
+        )}
+      </motion.div>
+    </div>
   );
 };
 

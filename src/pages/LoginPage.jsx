@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { Home } from 'lucide-react'; // Added Home icon
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -57,27 +58,33 @@ const LoginPage = () => {
     const handleGoogleSignIn = async () => {
         setLoading(true);
         await signInWithGoogle();
-        // The user will be redirected by Supabase, so we don't need to do anything here.
-        // setLoading will be stopped if an error occurs and the user stays on the page.
         setLoading(false);
     }
 
     return (
         <>
             <Helmet>
-                <title>Login - Agrivil</title>
-                <meta name="description" content="Login to your Agrivil account." />
+                <title>Login - Golden Acres</title>
+                <meta name="description" content="Login to your Golden Acres account." />
             </Helmet>
-            <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] bg-gray-50 px-4 py-12">
+            <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] bg-transparent px-4 py-12">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg"
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="w-full max-w-md p-8 space-y-6 bg-card/90 backdrop-blur-sm rounded-2xl shadow-2xl border"
                 >
-                    <div className="text-center">
+                    <div className="text-center flex justify-between items-center mb-4">
+                        <div></div>
                         <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
-                        <p className="mt-2 text-gray-600">Sign in to continue to Golden Acres.</p>
+                        <Button asChild variant="outline">
+                            <Link to="/">
+                                <Home className="h-4 w-4 mr-2" />
+                                Home
+                            </Link>
+                        </Button>
                     </div>
+                    <p className="mt-2 text-gray-600 text-center">Sign in to continue to Golden Acres.</p>
 
                     <form className="space-y-6" onSubmit={handleLogin}>
                         <div>
@@ -104,7 +111,7 @@ const LoginPage = () => {
                                 disabled={loading}
                             />
                         </div>
-                        <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={loading}>
+                        <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? 'Signing in...' : 'Sign In'}
                         </Button>
                     </form>
@@ -114,7 +121,7 @@ const LoginPage = () => {
                             <span className="w-full border-t" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+                            <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
                         </div>
                     </div>
 
@@ -124,7 +131,7 @@ const LoginPage = () => {
 
                     <p className="text-center text-sm text-gray-600">
                         Don't have an account?{' '}
-                        <Link to="/register" className="font-medium text-green-600 hover:underline">
+                        <Link to="/register" className="font-medium text-primary hover:underline">
                             Sign up
                         </Link>
                     </p>
