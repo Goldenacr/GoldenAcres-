@@ -1,91 +1,129 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useMemo, useCallback } from 'react';
 import { useCart } from '@/hooks/useCart';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { X, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const ShoppingCart = () => {
-    const { isCartOpen, setIsCartOpen, cartItems, removeFromCart, updateQuantity, handleWhatsAppCheckout } = useCart();
-    
-    const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const { cartItems, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, clearCart, handleWhatsAppCheckout } = useCart();
 
+    const subtotal = useMemo(() => 
+        cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cartItems]);
+
+    const handleCloseCart = useCallback(() => setIsCartOpen(false), [setIsCartOpen]);
+
+    const backdropVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.3 } },
+    };
+
+    const cartVariants = {
+        hidden: { x: '100%', transition: { type: 'spring', damping: 30, stiffness: 300 } },
+        visible: { x: '0%', transition: { type: 'spring', damping: 30, stiffness: 300 } },
+    };
+    
     return (
         <AnimatePresence>
             {isCartOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
-                    onClick={() => setIsCartOpen(false)}
-                >
+                <>
                     <motion.div
-                        initial={{ x: '100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '100%' }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="fixed top-0 right-0 h-full w-full max-w-md bg-card/90 shadow-2xl flex flex-col border-l"
-                        onClick={(e) => e.stopPropagation()}
+                        variants={backdropVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="hidden"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+                        onClick={handleCloseCart}
+                    />
+                    <motion.div
+                        variants={cartVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="hidden"
+                        className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[101] flex flex-col"
                     >
-                        <header className="p-4 flex justify-between items-center border-b">
-                            <h2 className="text-2xl font-bold">Your Cart</h2>
-                            <Button variant="ghost" size="icon" onClick={() => setIsCartOpen(false)}>
+                        <div className="flex items-center justify-between p-6 border-b">
+                            <h2 className="text-xl font-bold">Shopping Cart</h2>
+                            <Button variant="ghost" size="icon" onClick={handleCloseCart}>
                                 <X className="h-6 w-6" />
                             </Button>
-                        </header>
-                        
-                        <div className="flex-grow overflow-y-auto p-4">
-                            {cartItems.length > 0 ? (
-                                <ul className="divide-y divide-gray-200">
-                                    {cartItems.map((item) => (
-                                        <li key={item.id} className="py-4 flex items-start space-x-4">
-                                            <img
-                                                src={item.image_url || 'https://placehold.co/100x100'}
-                                                alt={item.name}
-                                                className="w-20 h-20 object-cover rounded-md"
-                                            />
-                                            <div className="flex-grow">
-                                                <h3 className="font-semibold">{item.name}</h3>
-                                                <p className="text-sm text-gray-500">GHS {Number(item.price).toLocaleString()}</p>
-                                                <div className="flex items-center mt-2">
-                                                    <input
-                                                        type="number"
-                                                        value={item.quantity}
-                                                        onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                                                        className="w-16 p-1 border rounded-md text-center bg-transparent"
-                                                        min="1"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col items-end">
-                                               <p className="font-bold">GHS {(item.price * item.quantity).toLocaleString()}</p>
-                                               <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
-                                                    <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                                                </Button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <div className="text-center py-20">
-                                    <p className="text-xl text-gray-500">Your cart is empty.</p>
-                                </div>
-                            )}
                         </div>
 
-                        {cartItems.length > 0 && (
-                            <footer className="p-4 border-t bg-muted/50">
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-lg font-semibold">Subtotal</span>
-                                    <span className="text-xl font-bold">GHS {subtotal.toLocaleString()}</span>
-                                </div>
-                                <Button className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg" onClick={handleWhatsAppCheckout}>
-                                    Order on WhatsApp
+                        {cartItems.length > 0 ? (
+                            <>
+                                <motion.div 
+                                    className="flex-1 p-6 space-y-4 overflow-y-auto"
+                                    initial="hidden"
+                                    animate="visible"
+                                    variants={{
+                                        visible: { transition: { staggerChildren: 0.05 } }
+                                    }}
+                                >
+                                    <AnimatePresence>
+                                    {cartItems.map(item => (
+                                        <motion.div 
+                                            key={item.id} 
+                                            layout
+                                            initial={{ opacity: 0, x: 50 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
+                                            className="flex items-center space-x-4"
+                                        >
+                                            <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-md object-cover border" loading="lazy" />
+                                            <div className="flex-1">
+                                                <p className="font-semibold">{item.name}</p>
+                                                <p className="text-sm text-gray-500">GHS {Number(item.price).toLocaleString()}</p>
+                                                <div className="flex items-center space-x-2 mt-2">
+                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity - 1)}><Minus className="h-4 w-4" /></Button>
+                                                    <span className="w-8 text-center">{item.quantity}</span>
+                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.quantity + 1)}><Plus className="h-4 w-4" /></Button>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
+                                                <Trash2 className="h-5 w-5 text-red-500" />
+                                            </Button>
+                                        </motion.div>
+                                    ))}
+                                    </AnimatePresence>
+                                </motion.div>
+
+                                <motion.div 
+                                    className="p-6 border-t space-y-4"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0, transition: { delay: cartItems.length * 0.05 + 0.2 } }}
+                                >
+                                    <div className="flex justify-between font-semibold text-lg">
+                                        <span>Subtotal</span>
+                                        <span>GHS {subtotal.toLocaleString()}</span>
+                                    </div>
+                                    <Button onClick={handleWhatsAppCheckout} className="w-full bg-primary hover:bg-primary/90" size="lg">
+                                        Checkout
+                                    </Button>
+                                    <Button variant="outline" className="w-full" onClick={clearCart}>
+                                        Clear Cart
+                                    </Button>
+                                </motion.div>
+                            </>
+                        ) : (
+                            <motion.div 
+                                className="flex-1 flex flex-col items-center justify-center p-6 text-center"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <motion.div animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+                                    <ShoppingBag className="w-24 h-24 text-gray-300 mb-4" />
+                                </motion.div>
+                                <h3 className="text-xl font-semibold">Your cart is empty</h3>
+                                <p className="text-gray-500 mt-2 mb-6">Looks like you haven't added anything yet.</p>
+                                <Button asChild onClick={handleCloseCart}>
+                                    <Link to="/marketplace">Start Shopping</Link>
                                 </Button>
-                            </footer>
+                            </motion.div>
                         )}
                     </motion.div>
-                </motion.div>
+                </>
             )}
         </AnimatePresence>
     );

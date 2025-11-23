@@ -5,6 +5,27 @@ import ShoppingCart from '@/components/ShoppingCart';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 
+const pageVariants = {
+  initial: {
+    opacity: 0,
+    y: 20,
+  },
+  in: {
+    opacity: 1,
+    y: 0,
+  },
+  out: {
+    opacity: 0,
+    y: -20,
+  }
+};
+
+const pageTransition = {
+  type: "tween",
+  ease: "anticipate",
+  duration: 0.5
+};
+
 const MainLayout = ({ children }) => {
   const location = useLocation();
   return (
@@ -14,10 +35,11 @@ const MainLayout = ({ children }) => {
         <motion.main
           key={location.pathname}
           className="flex-grow"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.5 }}
+          variants={pageVariants}
+          initial="initial"
+          animate="in"
+          exit="out"
+          transition={pageTransition}
         >
           {children}
         </motion.main>
