@@ -128,7 +128,7 @@ const FarmerProfilePage = () => {
         return <div className="text-center py-20 text-xl">Farmer not found or verification pending.</div>;
     }
     
-    const displayName = farmer.full_name || 'Golden Acres Farmer';
+    const displayName = (farmer.full_name && farmer.full_name !== 'N/A') ? farmer.full_name : 'Golden Acres Farmer';
 
     return (
         <>
@@ -217,4 +217,4 @@ const FarmerProfilePage = () => {
 };
 
 export default FarmerProfilePage;
-                                    
+        
