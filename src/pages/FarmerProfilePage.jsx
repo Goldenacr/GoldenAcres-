@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -69,11 +70,11 @@ const FarmerProfilePage = () => {
 
         } catch (error) {
             console.error("Error fetching farmer data:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load farmer profile.' });
+            // Don't show error toast immediately to avoid spam if just navigating
         } finally {
             setLoading(false);
         }
-    }, [id, user, toast]);
+    }, [id, user]);
 
     useEffect(() => {
         fetchFarmerData();
@@ -124,13 +125,15 @@ const FarmerProfilePage = () => {
     }
 
     if (!farmer) {
-        return <div className="text-center py-20 text-xl">Farmer not found.</div>;
+        return <div className="text-center py-20 text-xl">Farmer not found or verification pending.</div>;
     }
+    
+    const displayName = farmer.full_name || 'Golden Acres Farmer';
 
     return (
         <>
             <Helmet>
-                <title>{`${farmer.full_name} - Farmer Profile`}</title>
+                <title>{`${displayName} - Farmer Profile`}</title>
             </Helmet>
             
             {/* Profile Header */}
@@ -138,16 +141,16 @@ const FarmerProfilePage = () => {
                 <div className="container mx-auto px-4 py-8 md:py-12">
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10">
                         <Avatar className="w-32 h-32 border-4 border-white shadow-lg">
-                            <AvatarImage src={farmer.avatar_url} alt={farmer.full_name} />
+                            <AvatarImage src={farmer.avatar_url} alt={displayName} />
                             <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                                {farmer.full_name.charAt(0)}
+                                {displayName.charAt(0)}
                             </AvatarFallback>
                         </Avatar>
                         
                         <div className="flex-1 text-center md:text-left space-y-4">
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2">
-                                    {farmer.full_name}
+                                    {displayName}
                                     {farmer.is_verified && <VerifiedBadge className="h-6 w-6" />}
                                 </h1>
                                 <p className="text-lg text-muted-foreground mt-1">{farmer.farm_type || 'Mixed Farming'} • {farmer.farm_size || 'N/A'} Acres</p>
@@ -200,7 +203,7 @@ const FarmerProfilePage = () => {
 
             {/* Products Section */}
             <div className="container mx-auto px-4 py-12">
-                <h2 className="text-2xl font-bold mb-8">Products from {farmer.full_name}</h2>
+                <h2 className="text-2xl font-bold mb-8">Products from {displayName}</h2>
                 {products.length > 0 ? (
                     <ProductsList products={products} />
                 ) : (
@@ -214,3 +217,4 @@ const FarmerProfilePage = () => {
 };
 
 export default FarmerProfilePage;
+                                    
