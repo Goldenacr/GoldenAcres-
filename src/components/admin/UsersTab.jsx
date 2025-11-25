@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Ban, Eye, Trash2, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Ban, Eye, Trash2, ShieldCheck, ShieldOff, Phone, Mail, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
@@ -26,16 +26,16 @@ const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
     return (
         <>
             <h3 className="text-xl font-semibold mb-4">User Management</h3>
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50/80 backdrop-blur">
                             <tr>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Name</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Contact</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Role</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
-                                <th className="p-3 text-right font-medium text-muted-foreground">Actions</th>
+                                <th className="p-4 text-left font-semibold text-gray-600">User Profile</th>
+                                <th className="p-4 text-left font-semibold text-gray-600">Contact Details</th>
+                                <th className="p-4 text-left font-semibold text-gray-600">Role</th>
+                                <th className="p-4 text-left font-semibold text-gray-600">Status</th>
+                                <th className="p-4 text-right font-semibold text-gray-600">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -44,16 +44,39 @@ const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
                                     key={u.id}
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className="bg-white hover:bg-gray-50/50"
+                                    transition={{ delay: index * 0.03 }}
+                                    className="group hover:bg-gray-50 transition-colors"
                                 >
-                                    <td className="p-3 font-medium">
-                                        {u.full_name || u.email?.split('@')[0] || <span className="text-gray-400 italic">Unknown</span>}
+                                    <td className="p-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-gray-900 text-base">
+                                                {u.full_name && u.full_name !== 'N/A' ? u.full_name : (u.email?.split('@')[0] || 'Unknown')}
+                                            </span>
+                                            <span className="text-xs text-gray-500">ID: {u.id.slice(0, 8)}...</span>
+                                            <span className="text-xs text-gray-400 mt-1">Joined: {new Date(u.created_at).toLocaleDateString()}</span>
+                                        </div>
                                     </td>
-                                    <td className="p-3 text-muted-foreground">{u.email || 'N/A'}</td>
-                                    <td className="p-3">
+                                    <td className="p-4">
+                                        <div className="flex flex-col space-y-1.5">
+                                            <div className="flex items-center text-gray-600">
+                                                <Mail className="w-3 h-3 mr-2 text-gray-400" />
+                                                {u.email || 'No Email'}
+                                            </div>
+                                            <div className="flex items-center text-gray-600">
+                                                <Phone className="w-3 h-3 mr-2 text-gray-400" />
+                                                {u.phone_number ? u.phone_number : <span className="text-gray-400 italic text-xs">No Phone</span>}
+                                            </div>
+                                            {u.country && (
+                                                <div className="flex items-center text-xs text-gray-500">
+                                                   <MapPin className="w-3 h-3 mr-2 text-gray-400" />
+                                                   {u.country}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
                                         <Select onValueChange={(newRole) => onRoleUpdate(u.id, newRole)} value={u.role}>
-                                            <SelectTrigger className="w-[120px] h-9 text-xs"><SelectValue /></SelectTrigger>
+                                            <SelectTrigger className="w-[130px] h-8 text-xs border-gray-200 bg-white"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="customer">Customer</SelectItem>
                                                 <SelectItem value="farmer">Farmer</SelectItem>
@@ -61,19 +84,27 @@ const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
                                             </SelectContent>
                                         </Select>
                                     </td>
-                                    <td className="p-3">
+                                    <td className="p-4">
                                         {u.banned_until && new Date(u.banned_until) > new Date()
-                                            ? <span className="inline-flex items-center text-red-600"><ShieldOff className="h-4 w-4 mr-1.5" />Banned</span>
-                                            : <span className="inline-flex items-center text-green-600"><ShieldCheck className="h-4 w-4 mr-1.5" />Active</span>}
+                                            ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><ShieldOff className="h-3 w-3 mr-1" /> Banned</span>
+                                            : <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><ShieldCheck className="h-3 w-3 mr-1" /> Active</span>}
                                     </td>
-                                    <td className="p-3 text-right">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin-dashboard/users/${u.id}`)}><Eye className="h-4 w-4" /></Button>
-                                        {currentUser.id !== u.id && (
-                                            <>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenBanModal(u)}><Ban className="h-4 w-4 text-orange-500" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(u)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                                            </>
-                                        )}
+                                    <td className="p-4 text-right">
+                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin-dashboard/users/${u.id}`)} title="View Details">
+                                                <Eye className="h-4 w-4 text-blue-600" />
+                                            </Button>
+                                            {currentUser.id !== u.id && (
+                                                <>
+                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenBanModal(u)} title="Suspend User">
+                                                        <Ban className="h-4 w-4 text-orange-500" />
+                                                    </Button>
+                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onDelete(u)} title="Delete User">
+                                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </motion.tr>
                             ))}
@@ -114,4 +145,4 @@ const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
 };
 
 export default UsersTab;
-                                                
+                
