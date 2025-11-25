@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -46,7 +47,9 @@ const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
                                     transition={{ delay: index * 0.05 }}
                                     className="bg-white hover:bg-gray-50/50"
                                 >
-                                    <td className="p-3 font-medium">{u.full_name}</td>
+                                    <td className="p-3 font-medium">
+                                        {u.full_name || u.email?.split('@')[0] || <span className="text-gray-400 italic">Unknown</span>}
+                                    </td>
                                     <td className="p-3 text-muted-foreground">{u.email || 'N/A'}</td>
                                     <td className="p-3">
                                         <Select onValueChange={(newRole) => onRoleUpdate(u.id, newRole)} value={u.role}>
@@ -83,7 +86,7 @@ const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
             <Dialog open={isBanModalOpen} onOpenChange={setIsBanModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Manage User: {userToManage?.full_name}</DialogTitle>
+                        <DialogTitle>Manage User: {userToManage?.full_name || 'Unknown'}</DialogTitle>
                         <DialogDescription>Restrict or ban this user from accessing the platform.</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -111,3 +114,4 @@ const UsersTab = ({ users, currentUser, onRoleUpdate, onBan, onDelete }) => {
 };
 
 export default UsersTab;
+                                                
