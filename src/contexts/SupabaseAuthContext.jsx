@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
       setProfile(profileData);
       return profileData;
     } catch (error) {
-        console.error("Error fetching profile:", error);
+        // console.error("Error fetching profile:", error); // Suppress error logs for clean console on new users
         return null;
     }
   }, []);
@@ -82,7 +82,41 @@ export const AuthProvider = ({ children }) => {
     setUser(currentUser);
     
     if (currentUser) {
-        await fetchProfile(currentUser.id);
+        let profileData = await fetchProfile(currentUser.id);
+
+        // FIX: Fallback logic to ensure full_name is never "N/A" or null in the UI context
+        // This fixes issues where "My Name: N/A" appears in verification messages
+        if (!profileData || !profileData.full_name || profileData.full_name === 'N/A') {
+             const meta = currentUser.user_metadata || {};
+             
+             // Try to construct name from metadata, or use email prefix
+             let fallbackName = meta.full_name;
+             if (!fallbackName && meta.first_name) {
+                 fallbackName = `${meta.first_name} ${meta.last_name || ''}`.trim();
+             }
+             if (!fallbackName && currentUser.email) {
+                 fallbackName = currentUser.email.split('@')[0];
+             }
+             
+             // If we have a profile but name is missing/bad, patch it in memory
+             if (profileData) {
+                 const patchedProfile = { 
+                     ...profileData, 
+                     full_name: fallbackName || 'Valued Member' 
+                 };
+                 setProfile(patchedProfile);
+             } else {
+                 // If profile is completely missing (e.g. trigger failure), create temporary profile object
+                 setProfile({
+                     id: currentUser.id,
+                     full_name: fallbackName || 'Valued Member',
+                     email: currentUser.email,
+                     role: meta.role || 'customer',
+                     avatar_url: meta.avatar_url,
+                     banned_until: null
+                 });
+             }
+        }
     } else {
         setProfile(null);
     }
@@ -143,14 +177,11 @@ export const AuthProvider = ({ children }) => {
   }, [toast]);
   
   const signInWithGoogle = useCallback(async () => {
-    // Using window.location.origin ensures the redirect matches the current domain/subdomain exactly (including protocol)
-    // This helps prevent redirect_uri_mismatch errors if the user is on www vs non-www
     const redirectUrl = window.location.origin; 
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Explicitly setting redirectTo to the current origin
         redirectTo: redirectUrl, 
         queryParams: {
            access_type: 'offline',
@@ -211,3 +242,4 @@ export const useAuth = () => {
   }
   return context;
 };
+            
