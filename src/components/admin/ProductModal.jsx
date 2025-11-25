@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -11,6 +12,7 @@ import ImageUpload from '@/components/admin/ImageUpload';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 const formVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -25,21 +27,39 @@ const formVariants = {
 
 const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
     const { toast } = useToast();
+    const { profile } = useAuth();
     const [form, setForm] = useState({ name: '', description: '', price: '', unit: '', farmer_id: '' });
     const [inStock, setInStock] = useState(true);
     const [imageFile, setImageFile] = useState(null);
     const [loading, setLoading] = useState(false);
     
+    // Check if current user is an admin
+    const isAdmin = profile?.role === 'admin';
+
     useEffect(() => {
         if (product) {
-            setForm({ name: product.name, description: product.description, price: product.price, unit: product.unit || '', farmer_id: product.farmer_id || '' });
+            setForm({ 
+                name: product.name, 
+                description: product.description, 
+                price: product.price, 
+                unit: product.unit || '', 
+                // If admin, use existing farmer_id. If farmer, ensure it's their own ID.
+                farmer_id: product.farmer_id || (isAdmin ? '' : profile?.id) 
+            });
             setInStock(product.stock > 0);
         } else {
-            setForm({ name: '', description: '', price: '', unit: '', farmer_id: '' });
+            setForm({ 
+                name: '', 
+                description: '', 
+                price: '', 
+                unit: '', 
+                // If admin, empty start (force selection). If farmer, auto-assign their ID.
+                farmer_id: isAdmin ? '' : (profile?.id || '') 
+            });
             setInStock(true);
         }
         setImageFile(null);
-    }, [product, isOpen]);
+    }, [product, isOpen, profile, isAdmin]);
     
     const handleChange = (e) => {
         setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -73,13 +93,22 @@ const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
             imageUrl = publicUrl;
         }
         
-        if (!form.farmer_id) {
-            toast({ variant: 'destructive', title: 'Validation Error', description: 'Please select a farmer.' });
+        // Logic to ensure correct farmer_id is used
+        const finalFarmerId = isAdmin ? form.farmer_id : profile?.id;
+
+        if (!finalFarmerId) {
+            toast({ variant: 'destructive', title: 'Validation Error', description: 'Farmer identification is missing.' });
             setLoading(false);
             return;
         }
 
-        const productData = { ...form, image_url: imageUrl, stock: inStock ? (product?.stock > 0 ? product.stock : 1) : 0 };
+        const productData = { 
+            ...form, 
+            farmer_id: finalFarmerId,
+            image_url: imageUrl, 
+            stock: inStock ? (product?.stock > 0 ? product.stock : 1) : 0 
+        };
+
         const { error } = product
           ? await supabase.from('products').update(productData).eq('id', product.id)
           : await supabase.from('products').insert(productData);
@@ -125,13 +154,18 @@ const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
                             Product is in stock
                         </Label>
                      </motion.div>
-                    <motion.div variants={formVariants} initial="hidden" animate="visible" custom={5}>
-                        <Label>Farmer *</Label>
-                        <Select onValueChange={handleSelectChange} value={form.farmer_id}>
-                            <SelectTrigger className="w-full"><SelectValue placeholder="Select Farmer" /></SelectTrigger>
-                            <SelectContent>{farmers.map(f => <SelectItem key={f.id} value={f.id}>{f.full_name}</SelectItem>)}</SelectContent>
-                        </Select>
-                    </motion.div>
+                    
+                    {/* Only show Farmer Selection for Admins */}
+                    {isAdmin && (
+                        <motion.div variants={formVariants} initial="hidden" animate="visible" custom={5}>
+                            <Label>Farmer *</Label>
+                            <Select onValueChange={handleSelectChange} value={form.farmer_id}>
+                                <SelectTrigger className="w-full"><SelectValue placeholder="Select Farmer" /></SelectTrigger>
+                                <SelectContent>{farmers.map(f => <SelectItem key={f.id} value={f.id}>{f.full_name || 'Unknown Farmer'}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </motion.div>
+                    )}
+
                     <motion.div variants={formVariants} initial="hidden" animate="visible" custom={6}>
                         <Label>Product Image</Label>
                         <ImageUpload imageFile={imageFile} onFileChange={setImageFile} existingImageUrl={product?.image_url} />
@@ -150,3 +184,4 @@ const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
 };
 
 export default ProductModal;
+              
