@@ -95,8 +95,7 @@ const RegisterPage = () => {
             { val: region, name: "Region" },
             { val: cityTown, name: "City/Town" },
             { val: nearestLandmark, name: "Nearest Landmark" },
-            { val: deliveryAddress, name: "Delivery Address" },
-            { val: preferredDeliveryMethod, name: "Preferred Delivery Method" }
+            { val: deliveryAddress, name: "Delivery Address" }
         ];
 
         const farmerFields = [
@@ -122,6 +121,21 @@ const RegisterPage = () => {
             }
         }
 
+        // Check customer specific fields
+        if (role === 'customer') {
+            if (!preferredDeliveryMethod || preferredDeliveryMethod.trim() === '') {
+                toast({ variant: "destructive", title: "Missing Information", description: "Preferred Delivery Method is required." });
+                setLoading(false);
+                return;
+            }
+            if (preferredDeliveryMethod === 'hub' && (!preferredHub || preferredHub.trim() === '')) {
+                 toast({ variant: "destructive", title: "Missing Information", description: "Please select a Preferred Hub." });
+                 setLoading(false);
+                 return;
+            }
+        }
+
+
         // Check farmer specific fields
         if (role === 'farmer') {
             for (const field of farmerFields) {
@@ -131,13 +145,6 @@ const RegisterPage = () => {
                     return;
                 }
             }
-        }
-
-        // Check hub if pickup selected
-        if (role === 'customer' && preferredDeliveryMethod === 'hub' && !preferredHub) {
-             toast({ variant: "destructive", title: "Missing Information", description: "Please select a Preferred Hub." });
-             setLoading(false);
-             return;
         }
 
         const fullPhoneNumber = `${countryCode}${phoneNumber}`;
@@ -159,13 +166,20 @@ const RegisterPage = () => {
             region, 
             city_town: cityTown, 
             nearest_landmark: nearestLandmark, 
-            delivery_address: deliveryAddress, 
-            preferred_delivery_method: preferredDeliveryMethod 
+            delivery_address: deliveryAddress
         };
 
         if (role === 'customer') { 
-            Object.assign(metadata, { preferred_hub: preferredHub }); 
+            Object.assign(metadata, { 
+                preferred_delivery_method: preferredDeliveryMethod,
+                preferred_hub: preferredHub
+            }); 
         } else { 
+            // Preferred Delivery Method is no longer mandatory for farmers, so it's not strictly included here
+            // However, we include it if it was selected, otherwise it remains undefined.
+            if (preferredDeliveryMethod) {
+                Object.assign(metadata, { preferred_delivery_method: preferredDeliveryMethod });
+            }
             Object.assign(metadata, { 
                 national_id: nationalId, 
                 residential_address: residentialAddress, 
@@ -223,7 +237,7 @@ const RegisterPage = () => {
                         <Button asChild variant="outline"><Link to="/"><Home className="h-4 w-4 mr-2" />Home</Link></Button>
                     </div>
                     <p className="mt-2 text-gray-600 text-center">Connecting You Directly to Farmers Across Ghana</p>
-                    <p className="text-center text-sm font-medium text-red-500 mb-4">* All fields are mandatory</p>
+                    <p className="text-center text-sm font-medium text-red-500 mb-4">* All mandatory fields are marked with an asterisk</p>
 
                     <form className="space-y-6" onSubmit={handleRegister}>
                         <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}}>
@@ -273,8 +287,8 @@ const RegisterPage = () => {
                         {role === 'customer' && (
                             <motion.div key="customer" initial={{opacity:0, height: 0}} animate={{opacity:1, height: 'auto'}} exit={{opacity:0, height: 0}} transition={{duration: 0.4, ease: 'easeInOut'}}>
                                 <FormSection title="3. Account Preferences" delay={0}>
-                                    <div><Label>Preferred Delivery Method <span className="text-red-500">*</span></Label><Select onValueChange={setPreferredDeliveryMethod} value={preferredDeliveryMethod} required><SelectTrigger><SelectValue placeholder="Select Delivery Method" /></SelectTrigger><SelectContent><SelectItem value="home">Direct to Home</SelectItem><SelectItem value="hub">Hub Pickup</SelectItem></SelectContent></Select></div>
-                                    <div><Label>Preferred Hub (Optional for Home Delivery)</Label><Select onValueChange={setPreferredHub} value={preferredHub}><SelectTrigger><SelectValue placeholder="Select Hub" /></SelectTrigger><SelectContent><SelectItem value="madina">Madina</SelectItem><SelectItem value="bolgatanga">Bolgatanga</SelectItem><SelectItem value="ahafo">Ahafo Ano North</SelectItem><SelectItem value="lawra">Lawra</SelectItem><SelectItem value="savannah">Northern Savannah</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select></div>
+                                    <div><Label>Preferred Delivery Method <span className="text-red-500">*</span></Label><Select onValueChange={setPreferredDeliveryMethod} value={preferredDeliveryMethod} required={role === 'customer'}><SelectTrigger><SelectValue placeholder="Select Delivery Method" /></SelectTrigger><SelectContent><SelectItem value="home">Direct to Home</SelectItem><SelectItem value="hub">Hub Pickup</SelectItem></SelectContent></Select></div>
+                                    <div><Label>Preferred Hub (Optional for Home Delivery, Required for Hub Pickup)</Label><Select onValueChange={setPreferredHub} value={preferredHub}><SelectTrigger><SelectValue placeholder="Select Hub" /></SelectTrigger><SelectContent><SelectItem value="madina">Madina</SelectItem><SelectItem value="bolgatanga">Bolgatanga</SelectItem><SelectItem value="ahafo">Ahafo Ano North</SelectItem><SelectItem value="lawra">Lawra</SelectItem><SelectItem value="savannah">Northern Savannah</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select></div>
                                 </FormSection>
                             </motion.div>
                         )}
@@ -291,23 +305,4 @@ const RegisterPage = () => {
                                     <div><Label>GPS Location of Farm <span className="text-red-500">*</span></Label><Input value={gpsLocation} onChange={e => setGpsLocation(e.target.value)} required placeholder="e.g., 5.6037° N, 0.1870° W" /></div>
                                     <div><Label>Years of Farming Experience <span className="text-red-500">*</span></Label><Input type="number" value={farmingExperience} onChange={e => setFarmingExperience(e.target.value)} required /></div>
                                     <div><Label>Business Registration Status <span className="text-red-500">*</span></Label><Select onValueChange={setBusinessRegistrationStatus} value={businessRegistrationStatus} required><SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger><SelectContent><SelectItem value="registered">Registered</SelectItem><SelectItem value="not_registered">Not Registered</SelectItem></SelectContent></Select></div>
-                                    <div><Label>FDA Certification Status <span className="text-red-500">*</span></Label><Select onValueChange={setFdaCertificationStatus} value={fdaCertificationStatus} required><SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger><SelectContent><SelectItem value="certified">Certified</SelectItem><SelectItem value="not_certified">Not Certified</SelectItem><SelectItem value="in_progress">In Progress</SelectItem></SelectContent></Select></div>
-                                    <div className="sm:col-span-2"><Label>Main Products Cultivated/Reared <span className="text-red-500">*</span></Label><Input value={mainProducts} onChange={e => setMainProducts(e.target.value)} required placeholder="e.g., Maize, Yam, Poultry" /></div>
-                                </FormSection>
-                            </motion.div>
-                        )}
-                        </AnimatePresence>
-
-                        <Button type="submit" className="w-full !mt-8 bg-primary hover:bg-primary/90" disabled={loading}>{loading ? 'Registering...' : 'Create Account'}</Button>
-                    </form>
-                     <div className="relative my-6"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-300" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div></div>
-                    <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading}><GoogleIcon /> Sign Up with Google</Button>
-                    <p className="text-center text-sm text-gray-600 mt-6">Already have an account?{' '}<Link to="/login" className="font-medium text-primary hover:underline transition-colors duration-300">Log in here</Link></p>
-                    <p className="text-center text-sm text-gray-600">Trouble registering?{' '}<a href="https://wa.me/233557488116" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline transition-colors duration-300">Contact Support</a></p>
-                </motion.div>
-            </div>
-        </>
-    );
-};
-
-export default RegisterPage;
+                                    <div><Label>FDA Certification Status <span className="text-red-500">*</span></Label><Select onValueChange={setFdaCertificationStatus} value={fdaCertificationStatus} required><SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger><SelectContent><SelectItem value="certi
