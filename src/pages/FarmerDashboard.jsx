@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -20,7 +19,6 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/customSupabaseClient';
 import ProductsTab from '@/components/admin/ProductsTab';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const FarmerDashboard = () => {
   const { user, profile, signOut } = useAuth();
@@ -207,52 +205,6 @@ const FarmerDashboard = () => {
         </AlertDialog>
       );
     } else {
-        // Logic for verified users to add product would open a normal modal, 
-        // but here we just trigger the passed prop if available, or handled by ProductsTab's logic
-        // Actually ProductsTab handles the "Add Product" button itself in its own layout? 
-        // Wait, ProductsTab accepts onAdd which usually saves. 
-        // The "Add Product" button is traditionally OUTSIDE the tab or INSIDE. 
-        // In my previous code for FarmerDashboard, the button was in the header.
-        // Let's reuse the logic but just return a normal button that triggers the modal state if I had it lifted.
-        // But FarmerDashboard doesn't lift the modal state currently. 
-        // ProductsTab has the "Add Product" button inside it.
-        // Ah, my previous FarmerDashboard code had "AddProductButton" in the header.
-        // And PASSED "onAdd" to ProductsTab.
-        // But ProductsTab ALSO has an "Add Product" button inside it in the previous snippet?
-        // Let's check `ProductsTab.jsx` I wrote earlier... Yes, it has a button.
-        // So I should probably HIDE the button in ProductsTab if I have one in Dashboard, or vice versa.
-        // Or simply: FarmerDashboard passes `isFarmerView={true}`. 
-        // I'll let ProductsTab handle the ADD button, but I need to intercept it if not verified?
-        // No, the best UX is to let the dashboard show the button, and if clicked -> show alert.
-        // But ProductsTab is self-contained.
-        
-        // FIX: I will remove the Add Button from the header of FarmerDashboard 
-        // and let the ProductsTab handle it? 
-        // OR, keep the header button for better visibility and make it trigger the logic.
-        
-        // For simplicity and robustness based on the previous file content:
-        // I will keep the AddProductButton component here but it returns NULL if verified,
-        // because ProductsTab has its own button?
-        // actually `ProductsTab` I wrote in step 2 has a button.
-        // So if I render `ProductsTab`, it shows a button.
-        // If the user is NOT verified, I shouldn't render `ProductsTab` fully enabled?
-        // Or `ProductsTab` should be hidden?
-        
-        // User requirement: "Add a prominent verification prompt... so they don't miss ... even if they don't click add product"
-        // This implies the banner is key.
-        
-        // If verified, I return null here so no duplicate button in header (assuming ProductsTab has one).
-        // BUT, looking at my previous FarmerDashboard code, `ProductsTab` was rendered.
-        // And there was a button in the header: `<AddProductButton />`.
-        // If I keep it, I might have two buttons.
-        // Let's check `ProductsTab` code again.
-        // Yes, `<div className="flex justify-between... <Button ...>Add Product</Button>`.
-        // So `ProductsTab` has a button.
-        // I should probably remove the button from the FarmerDashboard header if ProductsTab is present,
-        // OR pass a prop to ProductsTab to hide its button.
-        // However, I can't edit ProductsTab in this step (I already did in prev turn).
-        // So, I will just not render the header button if verified, 
-        // relying on ProductsTab's button.
         return null; 
     }
   };
@@ -271,7 +223,6 @@ const FarmerDashboard = () => {
         </h1>
         <div className="flex items-center gap-2">
             <AnimatePresence>
-               {/* Only show this button if NOT verified, to trigger the alert. If verified, ProductsTab has the button. */}
                {!isVerified && (
                    <AlertDialog>
                     <AlertDialogTrigger asChild>
