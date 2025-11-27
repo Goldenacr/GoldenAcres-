@@ -1,11 +1,36 @@
-[
-  { "code": "GH", "name": "Ghana", "dial_code": "+233", "phone_length": 9 },
-  { "code": "NG", "name": "Nigeria", "dial_code": "+234", "phone_length": 10 },
-  { "code": "CI", "name": "Côte d'Ivoire", "dial_code": "+225", "phone_length": 10 },
-  { "code": "TG", "name": "Togo", "dial_code": "+228", "phone_length": 8 },
-  { "code": "BJ", "name": "Benin", "dial_code": "+229", "phone_length": 8 },
-  { "code": "BF", "name": "Burkina Faso", "dial_code": "+226", "phone_length": 8 },
-  { "code": "US", "name": "United States", "dial_code": "+1", "phone_length": 10 },
-  { "code": "GB", "name": "United Kingdom", "dial_code": "+44", "phone_length": 10 },
-  { "code": "CA", "name": "Canada", "dial_code": "+1", "phone_length": 10 }
-]
+{
+  "countries": [
+    { 
+      "code": "GH", 
+      "name": "Ghana", 
+      "dial_code": "+233", 
+      "phone_length": 9
+    },
+    { "code": "NG", "name": "Nigeria", "dial_code": "+234", "phone_length": 10 },
+    { "code": "CI", "name": "Côte d'Ivoire", "dial_code": "+225", "phone_length": 10 },
+    { "code": "TG", "name": "Togo", "dial_code": "+228", "phone_length": 8 },
+    { "code": "BJ", "name": "Benin", "dial_code": "+229", "phone_length": 8 },
+    { "code": "BF", "name": "Burkina Faso", "dial_code": "+226", "phone_length": 8 },
+    { "code": "US", "name": "United States", "dial_code": "+1", "phone_length": 10 },
+    { "code": "GB", "name": "United Kingdom", "dial_code": "+44", "phone_length": 10 },
+    { "code": "CA", "name": "Canada", "dial_code": "+1", "phone_length": 10 }
+  ],
+  "regions": [
+    "Ahafo",
+    "Ashanti",
+    "Bono",
+    "Bono East",
+    "Central",
+    "Eastern",
+    "Greater Accra",
+    "North East",
+    "Northern",
+    "Oti",
+    "Savannah",
+    "Upper East",
+    "Upper West",
+    "Volta",
+    "Western",
+    "Western North"
+  ]
+}
