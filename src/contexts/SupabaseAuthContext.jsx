@@ -83,11 +83,10 @@ export const AuthProvider = ({ children }) => {
     if (currentUser) {
         let profileData = await fetchProfile(currentUser.id);
 
-        // FIX: Fallback logic to ensure full_name is never "N/A" or null in the UI context
-        if (!profileData || !profileData.full_name || profileData.full_name === 'N/A') {
+        // Fallback logic to ensure profile object exists, even temporarily
+        if (!profileData) {
              const meta = currentUser.user_metadata || {};
              
-             // Try to construct name from metadata, or use email prefix
              let fallbackName = meta.full_name;
              if (!fallbackName && meta.first_name) {
                  fallbackName = `${meta.first_name} ${meta.last_name || ''}`.trim();
@@ -96,24 +95,15 @@ export const AuthProvider = ({ children }) => {
                  fallbackName = currentUser.email.split('@')[0];
              }
              
-             // If we have a profile but name is missing/bad, patch it in memory
-             if (profileData) {
-                 const patchedProfile = { 
-                     ...profileData, 
-                     full_name: fallbackName || 'Valued Member' 
-                 };
-                 setProfile(patchedProfile);
-             } else {
-                 // If profile is completely missing (e.g. trigger failure), create temporary profile object
-                 setProfile({
-                     id: currentUser.id,
-                     full_name: fallbackName || 'Valued Member',
-                     email: currentUser.email,
-                     role: meta.role || 'customer',
-                     avatar_url: meta.avatar_url,
-                     banned_until: null
-                 });
-             }
+             // Create temporary profile object for immediate use in the UI
+             setProfile({
+                 id: currentUser.id,
+                 full_name: fallbackName || 'Valued Member',
+                 email: currentUser.email,
+                 role: meta.role || 'customer',
+                 avatar_url: meta.avatar_url,
+                 banned_until: null
+             });
         }
     } else {
         setProfile(null);
@@ -145,18 +135,12 @@ export const AuthProvider = ({ children }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        if (event === 'TOKEN_REFRESH_GENERATED_ERROR') {
-            console.warn('Token refresh failed, signing out to clear stale session');
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            setProfile(null);
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+             await handleSession(newSession);
         } else if (event === 'SIGNED_OUT') {
             setSession(null);
             setUser(null);
             setProfile(null);
-        } else {
-            await handleSession(newSession);
         }
       }
     );
