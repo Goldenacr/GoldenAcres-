@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/SupabaseAuthContext';
 import { CartProvider } from '@/hooks/useCart';
 import { motion } from 'framer-motion';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, MapPin } from 'lucide-react';
 
 import MainLayout from '@/components/MainLayout';
 import AdminLayout from '@/components/AdminLayout';
@@ -23,6 +23,7 @@ const BlogPostDetailPage = React.lazy(() => import('@/pages/BlogPostDetailPage')
 const LoginPage = React.lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('@/pages/RegisterPage'));
 const FarmerDashboard = React.lazy(() => import('@/pages/FarmerDashboard'));
+const FarmerRevenuePage = React.lazy(() => import('@/pages/FarmerRevenuePage'));
 const CustomerDashboard = React.lazy(() => import('@/pages/CustomerDashboard'));
 const AdminDashboard = React.lazy(() => import('@/pages/AdminDashboard'));
 const AdminUserDetailsPage = React.lazy(() => import('@/pages/AdminUserDetailsPage'));
@@ -44,6 +45,9 @@ const AdminFarmersPage = React.lazy(() => import('@/pages/admin/AdminFarmersPage
 const AdminBlogPage = React.lazy(() => import('@/pages/admin/AdminBlogPage'));
 const AdminActivityPage = React.lazy(() => import('@/pages/admin/AdminActivityPage'));
 const AdminReviewsPage = React.lazy(() => import('@/pages/admin/AdminReviewsPage'));
+const AdminPickupHubsPage = React.lazy(() => import('@/pages/admin/AdminPickupHubsPage'));
+const AdminSettingsPage = React.lazy(() => import('@/pages/admin/AdminSettingsPage'));
+const AdminMassDeliveryPage = React.lazy(() => import('@/pages/admin/AdminMassDeliveryPage'));
 
 
 const PageLoader = () => (
@@ -72,9 +76,12 @@ function App() {
                       <Route path="farmers" element={<AdminFarmersPage />} />
                       <Route path="products" element={<AdminProductsPage />} />
                       <Route path="orders" element={<AdminOrdersPage />} />
+                      <Route path="mass-delivery" element={<AdminMassDeliveryPage />} />
                       <Route path="blog" element={<AdminBlogPage />} />
                       <Route path="activity" element={<AdminActivityPage />} />
                       <Route path="reviews" element={<AdminReviewsPage />} />
+                      <Route path="pickup-hubs" element={<AdminPickupHubsPage />} />
+                      <Route path="settings" element={<AdminSettingsPage />} />
                     </Route>
                     <Route path="/*" element={
                       <MainLayout>
@@ -92,16 +99,15 @@ function App() {
                           <Route path="/login" element={<LoginPage />} />
                           <Route path="/register" element={<RegisterPage />} />
                           <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
+                          <Route path="/farmer-dashboard/revenue" element={<FarmerRevenuePage />} />
                           <Route path="/customer-dashboard" element={<CustomerDashboard />} />
                           <Route path="/my-orders" element={<MyOrdersPage />} />
                           <Route path="/track-order/:orderId" element={<OrderTrackingPage />} />
                           <Route path="/checkout" element={<CheckoutPage />} />
                           <Route path="/success" element={<SuccessPage />} />
-                          <Route path="/settings/*" element={<SettingsPage />}>
-                            <Route index element={<SettingsMenuPage />} />
-                            <Route path="profile" element={<ProfileSettingsPage />} />
-                            <Route path="password" element={<ResetPasswordPage />} />
-                          </Route>
+                           <Route path="/settings" element={<SettingsPage />} />
+                           <Route path="/settings/profile" element={<ProfileSettingsPage />} />
+                           <Route path="/settings/password" element={<ResetPasswordPage />} />
                         </Routes>
                       </MainLayout>
                     } />

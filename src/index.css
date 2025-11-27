@@ -82,6 +82,19 @@
   }
 }
 
+.floating-input:focus-within label,
+.floating-input .has-value + label {
+  transform: translateY(-1.1rem) scale(0.8);
+  @apply text-primary bg-background px-1;
+}
+
+.floating-input .has-value + label {
+    @apply text-muted-foreground;
+}
+
+.floating-input:focus-within label {
+    @apply text-primary;
+}
 
 /* FANCY LOADER */
 .fancy-loader {
