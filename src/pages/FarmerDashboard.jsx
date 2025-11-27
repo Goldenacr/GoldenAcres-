@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,12 +20,14 @@ import {
     AlertDialogHeader, 
     AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Edit, Package, Loader2, Search } from 'lucide-react';
+import { Plus, Trash2, Edit, Package, Loader2, Search, CheckCircle2, XCircle, LayoutGrid, BarChart2 } from 'lucide-react';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { Link, useLocation } from 'react-router-dom';
 
 const FarmerDashboard = () => {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const { toast } = useToast();
+    const location = useLocation();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -203,123 +204,125 @@ const FarmerDashboard = () => {
         p.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const NavLink = ({ to, icon, children }) => {
+        const isActive = location.pathname === to;
+        return (
+            <Link
+                to={to}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    isActive ? 'bg-green-100 text-green-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+            >
+                {icon}
+                {children}
+            </Link>
+        );
+    };
+
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 min-h-screen bg-white">
             <Helmet>
                 <title>Farmer Dashboard - Golden Acres</title>
             </Helmet>
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Your Products</h1>
-                    <p className="text-gray-600 mt-1">Manage and track your farm produce.</p>
+                    <h1 className="text-3xl font-bold text-gray-900">Farmer Dashboard</h1>
+                    <p className="text-gray-600 mt-1">Manage your farm products and view orders.</p>
                 </div>
-                <Button onClick={() => handleOpenModal()} className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg">
-                    <Plus className="h-4 w-4 mr-2" /> Add Product
-                </Button>
+                 <nav className="flex items-center gap-2 p-1 bg-gray-100/70 rounded-lg">
+                    <NavLink to="/farmer-dashboard" icon={<LayoutGrid className="h-4 w-4" />}>
+                        Products
+                    </NavLink>
+                    <NavLink to="/farmer-dashboard/revenue" icon={<BarChart2 className="h-4 w-4" />}>
+                        Revenue
+                    </NavLink>
+                </nav>
             </div>
 
-            {/* Search and Filter */}
-            <div className="mb-6">
-                <div className="relative max-w-md">
+            {/* Search and Add */}
+            <div className="flex justify-between items-center mb-6">
+                <div className="relative max-w-md flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input 
                         placeholder="Search by product name..." 
-                        className="pl-10 bg-white border-gray-200"
+                        className="pl-10 bg-gray-50 border-gray-200"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+                 <Button onClick={() => handleOpenModal()} className="ml-4 bg-green-600 hover:bg-green-700 text-white">
+                    <Plus className="h-4 w-4 mr-2" /> Add Product
+                </Button>
             </div>
 
-            {/* Product Grid */}
+            {/* Product Table */}
             <div className="min-h-[400px]">
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="h-8 w-8 animate-spin text-green-600" />
                     </div>
                 ) : filteredProducts.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200">
+                    <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                         <Package className="mx-auto h-12 w-12 text-gray-300" />
-                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No products</h3>
-                        <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
-                        <div className="mt-6">
-                            <Button onClick={() => handleOpenModal()} variant="outline">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Product
-                            </Button>
-                        </div>
+                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No products found</h3>
+                        <p className="mt-1 text-sm text-gray-500">Get started by adding a new product.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        <AnimatePresence>
-                            {filteredProducts.map((product) => (
-                                <motion.div
-                                    key={product.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
-                                >
-                                    {/* Image Section - Top */}
-                                    <div className="relative h-48 bg-gray-100 group">
-                                        {product.image_url ? (
-                                            <img 
-                                                src={product.image_url} 
-                                                alt={product.name} 
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
-                                                <Package className="h-10 w-10 opacity-20" />
-                                            </div>
-                                        )}
-                                        
-                                        {/* Floating Actions */}
-                                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                            <button 
-                                                onClick={() => handleOpenModal(product)}
-                                                className="p-2 bg-white/90 hover:bg-white rounded-full shadow-sm text-blue-600 transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </button>
-                                            <button 
-                                                onClick={() => initiateDelete(product)}
-                                                className="p-2 bg-white/90 hover:bg-white rounded-full shadow-sm text-red-500 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Content Section - Vertical Stack */}
-                                    <div className="p-4 flex flex-col flex-grow">
-                                        <div className="mb-auto">
-                                            <h3 className="font-bold text-lg text-gray-900 line-clamp-1" title={product.name}>
-                                                {product.name}
-                                            </h3>
-                                            <p className="text-sm text-gray-500 mt-1">{product.category || 'Uncategorized'}</p>
-                                        </div>
-                                        
-                                        <div className="mt-4 flex items-end justify-between border-t pt-3 border-gray-50">
-                                            <div className="flex flex-col">
-                                                <span className="text-green-600 font-bold text-lg">
-                                                    ₵{product.price} <span className="text-xs font-normal text-gray-500">/ {product.unit}</span>
-                                                </span>
-                                            </div>
-                                            <span className={`text-sm font-medium ${product.stock > 0 ? 'text-gray-500' : 'text-red-500'}`}>
-                                                {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                    <div className="overflow-x-auto border rounded-lg">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50">
+                                <tr className="border-b border-gray-200">
+                                    <th className="py-3 px-4 font-semibold text-gray-600">Product</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">Farmer</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">Price</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600">Stock Status</th>
+                                    <th className="py-3 px-4 font-semibold text-gray-600 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <AnimatePresence>
+                                    {filteredProducts.map((product) => (
+                                        <motion.tr
+                                            key={product.id}
+                                            layout
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                                        >
+                                            <td className="py-4 px-4 font-bold text-gray-800">{product.name}</td>
+                                            <td className="py-4 px-4 text-gray-600">{profile?.full_name || 'N/A'}</td>
+                                            <td className="py-4 px-4 text-gray-600">GHS {product.price}</td>
+                                            <td className="py-4 px-4">
+                                                {product.stock > 0 ? (
+                                                    <div className="flex items-center gap-2 text-green-600">
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                        <span>In Stock</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-red-500">
+                                                        <XCircle className="h-4 w-4" />
+                                                        <span>Out of Stock</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex justify-end items-center gap-4">
+                                                    <button onClick={() => handleOpenModal(product)} className="text-gray-500 hover:text-blue-600" title="Edit">
+                                                        <Edit className="h-5 w-5" />
+                                                    </button>
+                                                    <button onClick={() => initiateDelete(product)} className="text-gray-500 hover:text-red-600" title="Delete">
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </AnimatePresence>
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>
@@ -400,4 +403,31 @@ const FarmerDashboard = () => {
                         </div>
                         
                         <div className="space-y-2">
-                            <Label html
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea id="description" name="description" value={formData.description} onChange={handleInputChange} rows={3} />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Product Image (Any size)</Label>
+                            <ImageUpload 
+                                imageFile={formData.imageFile} 
+                                onFileChange={handleFileChange} 
+                                existingImageUrl={formData.existingImageUrl} 
+                            />
+                        </div>
+
+                        <DialogFooter className="mt-6">
+                            <Button type="button" variant="outline" onClick={() => setIsProductModalOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {editingProduct ? 'Update Product' : 'Add Product'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+};
+
+export default FarmerDashboard;

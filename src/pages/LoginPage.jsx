@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Home } from 'lucide-react'; // Added Home icon
+import { Home, Eye, EyeOff } from 'lucide-react';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -31,10 +31,36 @@ const GoogleIcon = () => (
     </svg>
 );
 
+const FloatingLabelInput = ({ id, label, type, value, onChange, disabled, showPassword, onTogglePassword }) => {
+    return (
+        <div className="relative floating-input">
+            <Input
+                id={id}
+                type={type === 'password' ? (showPassword ? 'text' : 'password') : type}
+                value={value}
+                onChange={onChange}
+                required
+                className={`h-12 ${value ? 'has-value' : ''} ${type === 'password' ? 'pr-10' : ''}`}
+                disabled={disabled}
+            />
+            <Label htmlFor={id}>{label}</Label>
+            {type === 'password' && (
+                <button
+                    type="button"
+                    onClick={onTogglePassword}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground"
+                >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+            )}
+        </div>
+    );
+};
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const { signIn, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
@@ -51,13 +77,32 @@ const LoginPage = () => {
                 description: "Welcome back!",
             });
             navigate('/');
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: error.message,
+            });
         }
         setLoading(false);
     };
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
-        await signInWithGoogle();
+        const { error } = await signInWithGoogle();
+        if (error) {
+            toast({
+                variant: "destructive",
+                title: "Google Sign-In Failed",
+                description: error.message,
+            });
+        } else {
+            toast({
+                title: "Login Successful!",
+                description: "Welcome back!",
+            });
+            navigate('/');
+        }
         setLoading(false);
     }
 
@@ -77,7 +122,7 @@ const LoginPage = () => {
                     <div className="text-center flex justify-between items-center mb-4">
                         <div></div>
                         <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
-                        <Button asChild variant="outline">
+                        <Button asChild variant="outline" size="sm">
                             <Link to="/">
                                 <Home className="h-4 w-4 mr-2" />
                                 Home
@@ -87,30 +132,24 @@ const LoginPage = () => {
                     <p className="mt-2 text-gray-600 text-center">Sign in to continue to Golden Acres.</p>
 
                     <form className="space-y-6" onSubmit={handleLogin}>
-                        <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                placeholder="you@example.com"
-                                disabled={loading}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                placeholder="••••••••"
-                                disabled={loading}
-                            />
-                        </div>
+                        <FloatingLabelInput
+                            id="email"
+                            label="Email Address"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={loading}
+                        />
+                        <FloatingLabelInput
+                            id="password"
+                            label="Password"
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={loading}
+                            showPassword={showPassword}
+                            onTogglePassword={() => setShowPassword(!showPassword)}
+                        />
                         <Button type="submit" className="w-full" disabled={loading}>
                             {loading ? 'Signing in...' : 'Sign In'}
                         </Button>

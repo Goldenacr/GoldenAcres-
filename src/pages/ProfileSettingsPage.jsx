@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -46,10 +45,31 @@ const ProfileSettingsPage = () => {
     const [fullName, setFullName] = useState('');
     const [avatarLoading, setAvatarLoading] = useState(false);
     const [nameLoading, setNameLoading] = useState(false);
+    const [preferredHubName, setPreferredHubName] = useState('');
 
     useEffect(() => {
         if (profile) {
             setFullName(profile.full_name || '');
+            
+            if (profile.preferred_delivery_method === 'Pickup' && profile.preferred_hub) {
+                const fetchHubName = async () => {
+                    const { data, error } = await supabase
+                        .from('pickup_hubs')
+                        .select('name')
+                        .eq('id', profile.preferred_hub)
+                        .single();
+                    
+                    if (data) {
+                        setPreferredHubName(data.name);
+                    } else if(error) {
+                        console.error("Error fetching hub name:", error.message);
+                        setPreferredHubName('Invalid Hub ID');
+                    }
+                };
+                fetchHubName();
+            } else {
+                setPreferredHubName('');
+            }
         }
     }, [profile]);
     
@@ -135,7 +155,7 @@ const ProfileSettingsPage = () => {
         city_town: { label: 'City/Town', name: 'city_town', type: 'text' },
         nearest_landmark: { label: 'Nearest Landmark', name: 'nearest_landmark', type: 'text' },
         delivery_address: { label: 'Delivery Address', name: 'delivery_address', type: 'text' },
-        preferred_delivery_method: { label: 'Delivery Method', name: 'preferred_delivery_method', type: 'select', options: [{value: 'Home Delivery', label: 'Home Delivery'}, {value: 'Pickup Point', label: 'Pickup Point'}] },
+        preferred_delivery_method: { label: 'Delivery Method', name: 'preferred_delivery_method', type: 'select', options: [{value: 'Delivery', label: 'Home Delivery'}, {value: 'Pickup', label: 'Pickup Hub'}] },
         preferred_hub: { label: 'Preferred Hub', name: 'preferred_hub', type: 'text' },
         // Farmer fields
         national_id: { label: 'National ID', name: 'national_id', type: 'text' },
@@ -209,9 +229,11 @@ const ProfileSettingsPage = () => {
 
                     <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-t">Delivery Preferences</div>
                     <ProfileItem icon={<Truck />} label="Delivery Method" value={profile.preferred_delivery_method} action={() => openEditModal(fields.preferred_delivery_method)} />
-                    <ProfileItem icon={<MapPin />} label="Delivery Address" value={profile.delivery_address} action={() => openEditModal(fields.delivery_address)} />
-                    {profile.preferred_delivery_method === 'Pickup Point' && (
-                        <ProfileItem icon={<Building />} label="Preferred Hub" value={profile.preferred_hub} action={() => openEditModal(fields.preferred_hub)} />
+                    {profile.preferred_delivery_method === 'Delivery' &&
+                        <ProfileItem icon={<MapPin />} label="Delivery Address" value={profile.delivery_address} action={() => openEditModal(fields.delivery_address)} />
+                    }
+                    {profile.preferred_delivery_method === 'Pickup' && preferredHubName && (
+                        <ProfileItem icon={<Building />} label="Preferred Hub" value={preferredHubName} action={() => openEditModal(fields.preferred_hub)} />
                     )}
 
                     {profile.role === 'farmer' && (
