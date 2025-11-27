@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -29,9 +30,16 @@ const AdminOrdersPage = () => {
     const fetchData = useCallback(async (showLoader = true) => {
         if (showLoader) setLoading(true);
 
-        let query = supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false });
+        let query = supabase.from('orders').select(`
+            *,
+            order_items (
+                product_name,
+                farmer_name
+            )
+        `).order('created_at', { ascending: false });
+
         if (debouncedSearchTerm) {
-            query = query.like('id', `%${debouncedSearchTerm}%`);
+            query = query.or(`id::text.ilike.%${debouncedSearchTerm}%,customer_name.ilike.%${debouncedSearchTerm}%,customer_phone.ilike.%${debouncedSearchTerm}%`);
         }
 
         const { data, error } = await query;
@@ -40,7 +48,7 @@ const AdminOrdersPage = () => {
         } else {
             setOrders(data);
         }
-        setLoading(false);
+        if (showLoader) setLoading(false);
     }, [toast, debouncedSearchTerm]);
 
     useEffect(() => {
@@ -75,10 +83,27 @@ const AdminOrdersPage = () => {
     };
     
     const updateOrderStatus = async (orderId, newStatus) => {
+        // Find the order in the current state to update it locally first for responsiveness
+        const originalOrders = [...orders];
+        const updatedOrders = orders.map(o => o.id === orderId ? {...o, status: newStatus} : o);
+        setOrders(updatedOrders);
+
+        // Update the database
         const { error: updateError } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-        if (updateError) { handleApiResponse(updateError, '', 'Failed to update order status'); return; }
+        if (updateError) { 
+            setOrders(originalOrders); // Revert on error
+            handleApiResponse(updateError, '', 'Failed to update order status'); 
+            return; 
+        }
+        
+        // Log the update to history
         const { error: logError } = await supabase.from('order_status_history').insert({ order_id: orderId, status: newStatus, notes: `Status updated by admin.` });
-        handleApiResponse(logError, 'Order status updated', 'Failed to log update', () => fetchData(false));
+        if(logError) {
+             setOrders(originalOrders); // Revert on error
+             handleApiResponse(logError, '', 'Failed to log status update');
+        } else {
+            handleApiResponse(null, 'Order status updated', '', () => fetchData(false)); // Refetch to be sure
+        }
     };
 
     return (
@@ -90,7 +115,7 @@ const AdminOrdersPage = () => {
                     <div className="relative w-full max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
-                            placeholder="Search by Order ID..."
+                            placeholder="Search by Order ID, Name, Phone..."
                             className="pl-10"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}

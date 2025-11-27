@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, ShoppingCart, BarChart, PenSquare, Tractor, Search } from 'lucide-react';
+import { Users, ShoppingCart, BarChart, PenSquare, Tractor, Search, MapPin, PackageCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import SystemOverview from '@/components/admin/SystemOverview';
 import UsersTab from '@/components/admin/UsersTab';
@@ -13,16 +14,8 @@ import OrdersTab from '@/components/admin/OrdersTab';
 import BlogTab from '@/components/admin/BlogTab';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { useDebounce } from '@/hooks/useDebounce';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
     const { user: currentUser } = useAuth();
@@ -45,7 +38,7 @@ const AdminDashboard = () => {
         const [usersRes, productsRes, ordersRes, blogPostsRes, farmersRes] = await Promise.all([
             supabase.rpc('get_all_users_with_profiles'),
             supabase.from('products').select('*, farmer:profiles(id, full_name, is_verified)'),
-            supabase.from('orders').select('*').order('created_at', { ascending: false }),
+            supabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }),
             supabase.from('blog_posts').select('*, author:profiles(id, full_name)'),
             supabase.from('profiles').select('*').eq('role', 'farmer').order('created_at', { ascending: false }),
         ]);
@@ -164,24 +157,20 @@ const AdminDashboard = () => {
             </div>
             
             <Tabs defaultValue="overview">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-6 mb-4">
-                    <TabsTrigger value="overview">
-                        <BarChart className="h-4 w-4 mr-2" /> Overview
+                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-8 mb-4">
+                    <TabsTrigger value="overview"><BarChart className="h-4 w-4 mr-2" /> Overview</TabsTrigger>
+                    <TabsTrigger value="users"><Users className="h-4 w-4 mr-2" /> Users</TabsTrigger>
+                    <TabsTrigger value="farmers"><Tractor className="h-4 w-4 mr-2" /> Farmers</TabsTrigger>
+                    <TabsTrigger value="products"><ShoppingCart className="h-4 w-4 mr-2" /> Products</TabsTrigger>
+                    <TabsTrigger value="orders"><BarChart className="h-4 w-4 mr-2" /> Orders</TabsTrigger>
+                    <TabsTrigger asChild>
+                        <Link to="/admin-dashboard/mass-delivery" className="flex items-center justify-center"><PackageCheck className="h-4 w-4 mr-2" />Delivery</Link>
                     </TabsTrigger>
-                    <TabsTrigger value="users">
-                        <Users className="h-4 w-4 mr-2" /> Users
-                    </TabsTrigger>
-                    <TabsTrigger value="farmers">
-                        <Tractor className="h-4 w-4 mr-2" /> Farmers
-                    </TabsTrigger>
-                    <TabsTrigger value="products">
-                        <ShoppingCart className="h-4 w-4 mr-2" /> Products
-                    </TabsTrigger>
-                    <TabsTrigger value="orders">
-                        <BarChart className="h-4 w-4 mr-2" /> Orders
-                    </TabsTrigger>
-                    <TabsTrigger value="blog">
-                        <PenSquare className="h-4 w-4 mr-2" /> Blog
+                    <TabsTrigger value="blog"><PenSquare className="h-4 w-4 mr-2" /> Blog</TabsTrigger>
+                    <TabsTrigger asChild>
+                        <Link to="/admin-dashboard/pickup-hubs" className="flex items-center justify-center">
+                            <MapPin className="h-4 w-4 mr-2" /> Hubs
+                        </Link>
                     </TabsTrigger>
                 </TabsList>
 
