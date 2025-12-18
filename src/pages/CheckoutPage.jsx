@@ -109,7 +109,7 @@ const CheckoutPage = () => {
     
     const isInternational = profile?.country && profile.country !== 'Ghana';
 
-    const handleCheckout = async (method) => {
+    const handleCheckout = async (method, channel = null) => {
         if (!deliveryMethod) {
             toast({ variant: 'destructive', title: "Delivery method required", description: "Please select a delivery or pickup option."});
             return;
@@ -133,7 +133,7 @@ const CheckoutPage = () => {
         if (method === 'whatsapp') {
              await handleWhatsAppCheckout(deliveryDetails);
         } else {
-             await handlePaystackCheckout(deliveryDetails);
+             await handlePaystackCheckout(deliveryDetails, channel);
         }
         
         setIsSubmitting(false);
@@ -288,54 +288,62 @@ const CheckoutPage = () => {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Choose How to Checkout</CardTitle>
-                                    <CardDescription>Select one of the options below to complete your order.</CardDescription>
+                                    <CardTitle>Payment Method</CardTitle>
+                                    <CardDescription>Select how you want to pay for your order.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Option 1: WhatsApp */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Option 1: Card Payment */}
                                         <div 
-                                            className="p-6 border rounded-xl cursor-pointer hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/20 transition-all group relative"
-                                            onClick={() => handleCheckout('whatsapp')}
+                                            className="p-5 border rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
+                                            onClick={() => handleCheckout('paystack', 'card')}
                                         >
-                                            <div className="flex flex-col h-full justify-between">
-                                                <div className="flex justify-between items-start mb-4">
-                                                     <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
-                                                        <MessageCircle className="h-6 w-6 text-green-600" />
-                                                     </div>
-                                                     <div className="h-5 w-5 rounded-full border-2 border-gray-300 group-hover:border-green-500" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Send to WhatsApp</h3>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                        Forward your order details directly to our orders team for manual confirmation.
-                                                    </p>
-                                                </div>
+                                            <div className="flex flex-col h-full">
+                                                 <div className="bg-blue-100 dark:bg-blue-900/40 p-2.5 rounded-full w-fit mb-3">
+                                                    <CreditCard className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                                 </div>
+                                                <h3 className="font-bold text-gray-900 dark:text-gray-100">Pay with Card</h3>
+                                                <p className="text-xs text-muted-foreground mt-1">Visa, Mastercard</p>
                                             </div>
                                         </div>
 
-                                        {/* Option 2: Pay Now */}
+                                        {/* Option 2: Mobile Money */}
                                         <div 
-                                            className="p-6 border rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group relative"
-                                            onClick={() => handleCheckout('paystack')}
+                                            className={cn(
+                                                "p-5 border rounded-xl cursor-pointer transition-all group relative overflow-hidden",
+                                                isInternational 
+                                                    ? "opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-900" 
+                                                    : "hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                                            )}
+                                            onClick={() => !isInternational && handleCheckout('paystack', 'mobile_money')}
                                         >
-                                           <div className="flex flex-col h-full justify-between">
-                                                <div className="flex justify-between items-start mb-4">
-                                            <div className="bg-primary/10 p-3 rounded-full flex gap-1">
-                                                        <CreditCard className="h-6 w-6 text-primary" />
-                                                        <Smartphone className="h-6 w-6 text-primary" />
-                                                     </div>
-                                                     <div className="h-5 w-5 rounded-full border-2 border-gray-300 group-hover:border-primary" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Pay Now</h3>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                        {isInternational 
-                                                            ? "Secure checkout via Visa / Mastercard." 
-                                                            : "Secure checkout via Mobile Money (Momo) or Card."}
-                                                    </p>
-                                                </div>
+                                            <div className="flex flex-col h-full">
+                                                 <div className="bg-yellow-100 dark:bg-yellow-900/40 p-2.5 rounded-full w-fit mb-3">
+                                                    <Smartphone className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+                                                 </div>
+                                          <h3 className="font-bold text-gray-900 dark:text-gray-100">Mobile Money</h3>
+                                                <p className="text-xs text-muted-foreground mt-1">MTN, Telecel, AT</p>
+                                                
+                                                {isInternational && (
+                                                    <span className="absolute top-3 right-3 text-[10px] bg-gray-200 px-2 py-0.5 rounded text-gray-600 font-medium">
+                                                        Ghana Only
+                                                    </span>
+                                                )}
                                             </div>
+                                        </div>
+
+                                        {/* Option 3: WhatsApp (Full Width) */}
+                                        <div 
+                                            className="md:col-span-2 p-5 border rounded-xl cursor-pointer hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all group flex items-center gap-4"
+                                            onClick={() => handleCheckout('whatsapp')}
+                                        >
+                                             <div className="bg-green-100 dark:bg-green-900/40 p-2.5 rounded-full shrink-0">
+                                                <MessageCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                             </div>
+                                             <div>
+                                                <h3 className="font-bold text-gray-900 dark:text-gray-100">WhatsApp Order</h3>
+                                                <p className="text-xs text-muted-foreground">Manual confirmation via WhatsApp chat</p>
+                                             </div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -359,7 +367,7 @@ const CheckoutPage = () => {
                                 </CardContent>
                                 <CardFooter>
                                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 w-full">
-                                        Select a checkout option on the left to proceed.
+                                        Select a payment method on the left to complete your order.
                                     </p>
                                 </CardFooter>
                             </Card>
@@ -372,4 +380,3 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
-                                                            
