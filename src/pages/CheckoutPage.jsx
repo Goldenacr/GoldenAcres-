@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ShoppingCart, Trash2, ArrowLeft, Loader2, Home, Warehouse, Lock, CreditCard, MessageCircle, Truck, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Trash2, ArrowLeft, Loader2, Home, Warehouse, Lock, CreditCard, MessageCircle, Truck, AlertCircle, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -321,8 +321,9 @@ const CheckoutPage = () => {
                                         >
                                            <div className="flex flex-col h-full justify-between">
                                                 <div className="flex justify-between items-start mb-4">
-                                                     <div className="bg-primary/10 p-3 rounded-full">
+                                            <div className="bg-primary/10 p-3 rounded-full flex gap-1">
                                                         <CreditCard className="h-6 w-6 text-primary" />
+                                                        <Smartphone className="h-6 w-6 text-primary" />
                                                      </div>
                                                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 group-hover:border-primary" />
                                                 </div>
@@ -331,7 +332,7 @@ const CheckoutPage = () => {
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">
                                                         {isInternational 
                                                             ? "Secure checkout via Visa / Mastercard." 
-                                                            : "Secure checkout via Mobile Money or Card."}
+                                                            : "Secure checkout via Mobile Money (Momo) or Card."}
                                                     </p>
                                                 </div>
                                             </div>
@@ -371,3 +372,4 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
+                                                            
