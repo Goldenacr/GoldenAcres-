@@ -17,8 +17,8 @@ const ContactPage = () => {
         e.preventDefault();
         setLoading(true);
 
-        const serviceID = 'service_agrivil'; // Replace with your EmailJS service ID
-        const templateID = 'template_agrivil'; // Replace with your EmailJS template ID
+        const serviceID = 'service_agribridge'; // Replace with your EmailJS service ID
+        const templateID = 'template_agribridge'; // Replace with your EmailJS template ID
         const userID = 'user_YOUR_EMAILJS_USER_ID'; // Replace with your EmailJS User ID (Public Key)
 
         const data = {
@@ -72,7 +72,7 @@ const ContactPage = () => {
   return (
     <>
       <Helmet>
-        <title>Contact Us - Agrivil</title>
+        <title>Contact Us - Agribridge</title>
         <meta name="description" content="Get in touch with the Golden Acres team. We'd love to hear from you." />
       </Helmet>
       <div className="bg-gray-50 py-16 px-4 sm:px-6 lg:px-8">
