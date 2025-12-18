@@ -19,15 +19,13 @@ import { Loader2, Truck, Warehouse, Info, ChevronDown, CheckCircle, Sprout, User
 import { supabase } from '@/lib/customSupabaseClient';
 import countryData from '@/lib/countryData.json';
 
-const regions = countryData.regions || [];
-
 const baseSchema = z.object({
   role: z.enum(['customer', 'farmer']),
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }),
   confirmPassword: z.string(),
   full_name: z.string().min(3, { message: "Full name is required" }),
-  phone_number: z.string().min(9, { message: "Valid phone number is required" }),
+  phone_number: z.string().min(1, { message: "Phone number is required" }),
   gender: z.string().min(1, { message: "Please select a gender" }),
   date_of_birth: z.string().refine(val => new Date(val).toString() !== 'Invalid Date', { message: 'Please enter a valid date' }),
   country: z.string().min(1, { message: "Country is required" }),
@@ -66,6 +64,20 @@ const formSchema = z.discriminatedUnion("role", [
 }, {
     message: "Please select a pickup hub",
     path: ["preferred_hub"],
+}).superRefine((data, ctx) => {
+    const countryInfo = countryData.countries.find(c => c.name === data.country);
+    if (countryInfo) {
+        // Strip any non-digit chars (spaces, dashes, parens)
+        const phone = data.phone_number.replace(/\D/g, '');
+        // Check exact length expected for that country
+        if (phone.length !== countryInfo.phone_length) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Phone number for ${data.country} must be ${countryInfo.phone_length} digits`,
+                path: ['phone_number']
+            });
+        }
+    }
 });
 
 const FloatingLabelInput = ({ name, label, type, register, errors, showPassword, onTogglePassword, ...props }) => {
@@ -95,8 +107,13 @@ const FloatingLabelInput = ({ name, label, type, register, errors, showPassword,
     );
 };
 
-const RegionSelector = ({ value, onSelect, error }) => {
+const RegionSelector = ({ value, onSelect, error, regions }) => {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // If no regions are available (e.g. unknown country), maybe show a message or just don't render dialog
+  // But for this requirement, we assume regions exist for supported countries.
+  // If array is empty, we still render but it will be empty list.
+  
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -107,12 +124,16 @@ const RegionSelector = ({ value, onSelect, error }) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader><DialogTitle>Select Region</DialogTitle></DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto">
-          {regions.map((region) => (
-            <div key={region} onClick={() => { onSelect(region); setIsOpen(false); }} className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-md cursor-pointer">
-              <span>{region}</span>
-              {value === region && <CheckCircle className="h-5 w-5 text-primary" />}
-            </div>
-          ))}
+          {regions && regions.length > 0 ? (
+              regions.map((region) => (
+                <div key={region} onClick={() => { onSelect(region); setIsOpen(false); }} className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-md cursor-pointer">
+                  <span>{region}</span>
+                  {value === region && <CheckCircle className="h-5 w-5 text-primary" />}
+                </div>
+              ))
+          ) : (
+              <div className="p-4 text-center text-muted-foreground">No regions available for this country.</div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -136,6 +157,7 @@ export default function RegisterPage() {
 
     const { register, handleSubmit, watch, setValue, formState: { errors } } = methods;
     const role = watch('role');
+    const selectedCountry = watch('country');
     const selectedRegion = watch('region');
     const deliveryMethod = watch('preferred_delivery_method');
     const selectedHubId = watch('preferred_hub');
@@ -151,12 +173,18 @@ export default function RegisterPage() {
                 const data = await response.json();
                 
                 if (data.success) {
-                    setValue('country', data.country, { shouldValidate: true });
-                    toast({ 
-                        title: "Location Detected", 
-                        description: `We've set your country to ${data.country}.`,
-                        duration: 3000
-                    });
+                    // Check if detected country is supported (exists in our JSON), if not fallback to Ghana
+                    const isSupported = countryData.countries.some(c => c.name === data.country);
+                    if (isSupported) {
+                        setValue('country', data.country, { shouldValidate: true });
+                        toast({ 
+                            title: "Location Detected", 
+                            description: `We've set your country to ${data.country}.`,
+                            duration: 3000
+                        });
+                    } else {
+                        setValue('country', 'Ghana');
+                    }
                 } else {
                     setValue('country', 'Ghana'); // Default fallback
                 }
@@ -170,6 +198,21 @@ export default function RegisterPage() {
 
         fetchCountry();
     }, [setValue, toast]);
+
+    // Reset region when country changes
+    useEffect(() => {
+        if (selectedCountry) {
+             // We don't necessarily want to clear region if it was just set by user, but strictly speaking 
+             // if country changes, region is invalid. 
+             // However, on first load 'selectedCountry' is set, we don't want to wipe 'region' if we had prefilled it (not applicable here as it's new reg).
+             // But if user manually changes country, we should probably clear region.
+             // We can check if current region is valid for new country.
+             const countryInfo = countryData.countries.find(c => c.name === selectedCountry);
+             if (countryInfo && selectedRegion && !countryInfo.regions.includes(selectedRegion)) {
+                 setValue('region', '');
+             }
+        }
+    }, [selectedCountry, setValue, selectedRegion]);
 
     useEffect(() => {
         if (role === 'customer' && deliveryMethod === 'Pickup' && selectedRegion) {
@@ -266,6 +309,10 @@ export default function RegisterPage() {
        </AnimatePresence>
     );
 
+    // Get current country's regions
+    const currentCountryInfo = countryData.countries.find(c => c.name === selectedCountry);
+    const availableRegions = currentCountryInfo ? currentCountryInfo.regions : [];
+
     return (
         <>
             <Helmet>
@@ -309,7 +356,13 @@ export default function RegisterPage() {
                                 <CardHeader><CardTitle className="flex items-center text-xl"><UserPlus className="mr-3 text-primary" /> Personal Information</CardTitle></CardHeader>
                                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <FloatingLabelInput name="full_name" label="Full Name" register={register} errors={errors} />
-                                    <FloatingLabelInput name="phone_number" label="Phone Number" type="tel" register={register} errors={errors} />
+                                    <FloatingLabelInput 
+                                        name="phone_number" 
+                                        label={`Phone Number (${currentCountryInfo ? currentCountryInfo.phone_length + ' digits' : 'Required'})`} 
+                                        type="tel" 
+                                        register={register} 
+                                        errors={errors} 
+                                    />
                                     <div className="relative floating-input">
                                         <Input id="date_of_birth" type="date" {...register("date_of_birth")} className="h-12 has-value" />
                                         <Label htmlFor="date_of_birth">Date of Birth</Label>
@@ -334,11 +387,17 @@ export default function RegisterPage() {
                                 <CardHeader><CardTitle className="flex items-center text-xl"><MapPin className="mr-3 text-primary" /> Location Information</CardTitle></CardHeader>
                                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="md:col-span-2 relative">
-                                        <FloatingLabelInput name="country" label="Country" register={register} errors={errors} />
+                                        {/* For simplicity we use standard input for country but auto-filled. Ideally a selector */}
+                                        <FloatingLabelInput name="country" label="Country" register={register} errors={errors} readOnly={true} />
                                         {detectingLocation && <Loader2 className="absolute right-3 top-3.5 h-5 w-5 animate-spin text-muted-foreground" />}
                                     </div>
                                     <div className="md:col-span-2">
-                                      <RegionSelector value={selectedRegion} onSelect={(region) => setValue('region', region, { shouldValidate: true })} error={errors.region} />
+                                      <RegionSelector 
+                                          value={selectedRegion} 
+                                          onSelect={(region) => setValue('region', region, { shouldValidate: true })} 
+                                          error={errors.region}
+                                          regions={availableRegions}
+                                      />
                                       {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region.message}</p>}
                                     </div>
                                     <FloatingLabelInput name="city_town" label="City / Town" register={register} errors={errors} />
