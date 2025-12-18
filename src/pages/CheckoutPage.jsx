@@ -16,6 +16,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 const CheckoutPage = () => {
     const { cartItems, removeFromCart, updateQuantity, handleWhatsAppCheckout, handlePaystackCheckout } = useCart();
@@ -209,13 +210,28 @@ const CheckoutPage = () => {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
-                                        <Button variant={deliveryMethod === 'Delivery' ? 'default' : 'outline'} className="h-auto py-6 flex flex-col gap-2 relative overflow-hidden" onClick={() => setDeliveryMethod('Delivery')}>
+                                        <Button 
+                                            variant="outline"
+                                            className={cn(
+                                                "h-auto py-6 flex flex-col gap-2 relative overflow-hidden transition-all duration-200 border-2",
+                                                deliveryMethod === 'Delivery' 
+                                                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary" 
+                                                    : "border-border hover:border-primary/50 text-gray-600 dark:text-gray-300"
+                                            )}
+                                            onClick={() => setDeliveryMethod('Delivery')}
+                                        >
                                             <Home className="h-8 w-8" />
                                             <span className="text-lg font-semibold">Home Delivery</span>
                                         </Button>
                                         <Button 
-                                            variant={deliveryMethod === 'Pickup' ? 'default' : 'outline'} 
-                                            className={`h-auto py-6 flex flex-col gap-2 relative overflow-hidden ${!pickupAvailable ? 'opacity-50 cursor-not-allowed bg-gray-100 hover:bg-gray-100' : ''}`}
+                                            variant="outline"
+                                            className={cn(
+                                                "h-auto py-6 flex flex-col gap-2 relative overflow-hidden transition-all duration-200 border-2",
+                                                deliveryMethod === 'Pickup' 
+                                                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary" 
+                                                    : "border-border hover:border-primary/50 text-gray-600 dark:text-gray-300",
+                                                !pickupAvailable && "opacity-50 cursor-not-allowed bg-gray-100 hover:bg-gray-100 border-gray-200"
+                                            )}
                                             onClick={() => pickupAvailable && setDeliveryMethod('Pickup')}
                                             disabled={!pickupAvailable}
                                         >
