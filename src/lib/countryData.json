@@ -1,36 +1,89 @@
+
 {
   "countries": [
     { 
       "code": "GH", 
       "name": "Ghana", 
       "dial_code": "+233", 
-      "phone_length": 9
+      "phone_length": 10,
+      "regions": [
+        "Ahafo", "Ashanti", "Bono", "Bono East", "Central", "Eastern", 
+        "Greater Accra", "North East", "Northern", "Oti", "Savannah", 
+        "Upper East", "Upper West", "Volta", "Western", "Western North"
+      ]
     },
-    { "code": "NG", "name": "Nigeria", "dial_code": "+234", "phone_length": 10 },
-    { "code": "CI", "name": "Côte d'Ivoire", "dial_code": "+225", "phone_length": 10 },
-    { "code": "TG", "name": "Togo", "dial_code": "+228", "phone_length": 8 },
-    { "code": "BJ", "name": "Benin", "dial_code": "+229", "phone_length": 8 },
-    { "code": "BF", "name": "Burkina Faso", "dial_code": "+226", "phone_length": 8 },
-    { "code": "US", "name": "United States", "dial_code": "+1", "phone_length": 10 },
-    { "code": "GB", "name": "United Kingdom", "dial_code": "+44", "phone_length": 10 },
-    { "code": "CA", "name": "Canada", "dial_code": "+1", "phone_length": 10 }
-  ],
-  "regions": [
-    "Ahafo",
-    "Ashanti",
-    "Bono",
-    "Bono East",
-    "Central",
-    "Eastern",
-    "Greater Accra",
-    "North East",
-    "Northern",
-    "Oti",
-    "Savannah",
-    "Upper East",
-    "Upper West",
-    "Volta",
-    "Western",
-    "Western North"
+    { 
+      "code": "NG", 
+      "name": "Nigeria", 
+      "dial_code": "+234", 
+      "phone_length": 11,
+      "regions": [
+        "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", 
+        "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa", 
+        "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", 
+        "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", 
+        "Zamfara", "FCT - Abuja"
+      ]
+    },
+    { 
+      "code": "CI", 
+      "name": "Côte d'Ivoire", 
+      "dial_code": "+225", 
+      "phone_length": 10,
+      "regions": [
+        "Abidjan", "Bas-Sassandra", "Comoé", "Denguélé", "Gôh-Djiboua", "Lacs", 
+        "Lagunes", "Montagnes", "Sassandra-Marahoué", "Savanes", "Vallée du Bandama", 
+        "Woroba", "Yamoussoukro", "Zanzan"
+      ]
+    },
+    { 
+      "code": "TG", 
+      "name": "Togo", 
+      "dial_code": "+228", 
+      "phone_length": 8,
+      "regions": ["Centrale", "Kara", "Maritime", "Plateaux", "Savanes"]
+    },
+    { 
+      "code": "BJ", 
+      "name": "Benin", 
+      "dial_code": "+229", 
+      "phone_length": 8,
+      "regions": ["Alibori", "Atakora", "Atlantique", "Borgou", "Collines", "Couffo", "Donga", "Littoral", "Mono", "Ouémé", "Plateau", "Zou"]
+    },
+    { 
+      "code": "BF", 
+      "name": "Burkina Faso", 
+      "dial_code": "+226", 
+      "phone_length": 8,
+      "regions": ["Boucle du Mouhoun", "Cascades", "Centre", "Centre-Est", "Centre-Nord", "Centre-Ouest", "Centre-Sud", "Est", "Hauts-Bassins", "Nord", "Plateau-Central", "Sahel", "Sud-Ouest"]
+    },
+    { 
+      "code": "US", 
+      "name": "United States", 
+      "dial_code": "+1", 
+      "phone_length": 10,
+      "regions": [
+        "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", 
+        "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", 
+        "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", 
+        "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", 
+        "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", 
+        "West Virginia", "Wisconsin", "Wyoming"
+      ]
+    },
+    { 
+      "code": "GB", 
+      "name": "United Kingdom", 
+      "dial_code": "+44", 
+      "phone_length": 11,
+      "regions": ["England", "Scotland", "Wales", "Northern Ireland"]
+    },
+    { 
+      "code": "CA", 
+      "name": "Canada", 
+      "dial_code": "+1", 
+      "phone_length": 10,
+      "regions": ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"]
+    }
   ]
-}
+    }
