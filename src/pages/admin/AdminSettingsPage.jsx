@@ -7,7 +7,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Bell, Shield, Palette, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
-import { Button } from '@/components/ui/button';
 import { useBrowserNotification } from '@/hooks/useBrowserNotification';
 import { TwoFactorAuthDialog } from '@/components/admin/TwoFactorAuthDialog';
 
@@ -27,8 +26,10 @@ const AdminSettingsPage = () => {
   const fetch2FAStatus = useCallback(async () => {
     setLoading2FAStatus(true);
     const { data, error } = await supabase.auth.mfa.listFactors();
-    if (!error && data.totp.length > 0) {
-      setIs2FAEnabled(true);
+    if (!error && data.totp && data.totp.length > 0) {
+      // Check if any factor is verified
+      const hasVerifiedFactor = data.totp.some(factor => factor.status === 'verified');
+      setIs2FAEnabled(hasVerifiedFactor);
     } else {
       setIs2FAEnabled(false);
     }
@@ -75,7 +76,7 @@ const AdminSettingsPage = () => {
     const { error } = await supabase
         .from('admin_settings')
         .update({ [key]: value })
-        .eq('user_id', user.id);
+        .eq('user.id', user.id);
 
     if (error) {
         toast({ variant: "destructive", title: "Failed to update setting", description: error.message });
@@ -95,14 +96,20 @@ const AdminSettingsPage = () => {
       // Logic to disable 2FA
       const unenroll = async () => {
         const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
-        if (listError || factors.totp.length === 0) {
+        if (listError || !factors.totp || factors.totp.length === 0) {
           toast({variant: 'destructive', title: 'Error', description: 'No 2FA factor found to disable.'});
           return;
         }
-        const factorId = factors.totp[0].id;
-        const { error } = await supabase.auth.mfa.unenroll({ factorId });
-        if (error) {
-          toast({variant: 'destructive', title: 'Failed to disable 2FA', description: error.message});
+        
+        // Unenroll all verified factors to be safe
+        let hasError = false;
+        for (const factor of factors.totp) {
+             const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
+             if (error) hasError = true;
+        }
+        
+        if (hasError) {
+          toast({variant: 'destructive', title: 'Failed to disable 2FA', description: 'Could not unenroll all factors.'});
         } else {
           toast({title: 'Two-Factor Authentication has been disabled.'});
           setIs2FAEnabled(false);
@@ -122,18 +129,18 @@ const AdminSettingsPage = () => {
   return (
     <>
       <Helmet>
-        <title>Admin Settings - Golden Acres</title>
-        <meta name="description" content="Manage administrative preferences for Golden Acres." />
+        <title>Admin Settings - Agribridge</title>
+        <meta name="description" content="Manage administrative preferences for Agribridge." />
       </Helmet>
 
-      <div className="space-y-8">
+      <div className="space-y-8 pb-10">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Settings</h1>
           <p className="text-muted-foreground">Manage your administrative preferences.</p>
         </div>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Bell /> Notifications</CardTitle><CardDescription>Manage how you receive administrative notifications.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5"/> Notifications</CardTitle><CardDescription>Manage how you receive administrative notifications.</CardDescription></CardHeader>
           <CardContent className="space-y-6">
             {loading ? <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div> : (
               <>
@@ -157,20 +164,20 @@ const AdminSettingsPage = () => {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Shield /> Security</CardTitle><CardDescription>Manage security settings for the admin panel.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> Security</CardTitle><CardDescription>Manage security settings for the admin panel.</CardDescription></CardHeader>
           <CardContent className="space-y-4">
-             <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
+             <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg bg-slate-50">
                 <div className="flex flex-col space-y-1">
                   <span className="font-medium">Two-Factor Authentication (2FA)</span>
                   <span className="text-sm text-muted-foreground">Require a code from your authenticator app to log in.</span>
                 </div>
-                {loading2FAStatus ? <Loader2 className="h-5 w-5 animate-spin" /> : <Switch id="mfa-admin" checked={is2FAEnabled} onCheckedChange={handle2FAToggle} />}
+                {loading2FAStatus ? <Loader2 className="h-5 w-5 animate-spin text-gray-400" /> : <Switch id="mfa-admin" checked={is2FAEnabled} onCheckedChange={handle2FAToggle} />}
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Palette /> Appearance</CardTitle><CardDescription>Customize the look and feel of the admin dashboard.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5"/> Appearance</CardTitle><CardDescription>Customize the look and feel of the admin dashboard.</CardDescription></CardHeader>
           <CardContent className="space-y-4">
              <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
                <div className="flex flex-col space-y-1"><span className="font-medium">Dark Mode</span><span className="text-sm text-muted-foreground">Enable dark mode for the admin dashboard.</span></div>

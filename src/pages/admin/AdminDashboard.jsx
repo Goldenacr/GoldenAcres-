@@ -151,7 +151,7 @@ const AdminDashboard = () => {
 
     return (
         <>
-            <Helmet><title>Admin Dashboard - Golden Acres</title></Helmet>
+            <Helmet><title>Admin Dashboard - Agribridge</title></Helmet>
             <div className="py-8">
                 <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
             </div>
@@ -193,7 +193,7 @@ const AdminDashboard = () => {
                             <ProductsTab products={filteredProducts} farmers={data.users.filter(u => u.role === 'farmer')} onAdd={fetchData} onEdit={fetchData} onDelete={(p) => confirmDelete(p, deleteProduct)} />
                         </TabsContent>
                         <TabsContent value="orders"><OrdersTab orders={data.orders} onStatusUpdate={() => fetchData(false)} onDelete={(o) => confirmDelete(o, deleteOrder)} /></TabsContent>
-                        <TabsContent value="blog"><BlogTab posts={data.blogPosts} authors={data.users.filter(u => u.role === 'admin')} onSave={fetchData} onDelete={(p) => confirmDelete(p, deleteBlogPost)} /></TabsContent>
+                        <TabsContent value="blog"><BlogTab blogPosts={data.blogPosts} onAdd={fetchData} onEdit={fetchData} onDelete={(p) => confirmDelete(p, deleteBlogPost)} /></TabsContent>
                     </>
                 )}
             </Tabs>
