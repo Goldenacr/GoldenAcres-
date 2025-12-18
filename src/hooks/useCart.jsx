@@ -269,7 +269,9 @@ export const CartProvider = ({ children }) => {
             }
 
             const subtotal = validItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-            const deliveryFee = deliveryDetails.method === 'Delivery' ? 15.00 : 0;
+            
+            // Delivery fee is removed from calculation as requested (Set to 0)
+            const deliveryFee = 0; 
             const totalAmount = subtotal + deliveryFee;
 
              const { data: orderData, error: orderError } = await supabase
@@ -349,4 +351,4 @@ export const CartProvider = ({ children }) => {
 
     return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
-                
+        
