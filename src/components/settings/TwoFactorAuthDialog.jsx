@@ -1,0 +1,197 @@
+
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/customSupabaseClient';
+import { Loader2, ShieldCheck, KeyRound, Copy, Check } from 'lucide-react';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
+
+
+export const TwoFactorAuthDialog = ({ isOpen, onOpenChange, onSuccess }) => {
+  const { toast } = useToast();
+  const [step, setStep] = useState('initial'); // 'initial', 'qr', 'verify'
+  const [qrCode, setQrCode] = useState('');
+  const [secret, setSecret] = useState('');
+  const [factorId, setFactorId] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const startEnrollment = async () => {
+    setLoading(true);
+    try {
+        const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+        
+        if (error) throw error;
+
+        setQrCode(data.totp.qr_code);
+        setSecret(data.totp.secret);
+        setFactorId(data.id);
+        setStep('qr');
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Failed to start 2FA setup', description: error.message });
+    } finally {
+        setLoading(false);
+    }
+  };
+  
+  const verifyCode = async () => {
+    setLoading(true);
+    try {
+        const { error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+        if(challengeError) throw challengeError;
+
+        const { error: verifyError } = await supabase.auth.mfa.verify({ factorId, code: verificationCode });
+        
+        if (verifyError) {
+             throw new Error('Invalid code. Please try again.');
+        } 
+        
+        toast({ title: '2FA Enabled!', description: 'Two-Factor Authentication is now active for your account.' });
+        if(onSuccess) onSuccess();
+        onOpenChange(false);
+        resetState();
+
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Verification Failed', description: error.message });
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleVerifySubmit = (e) => {
+      e.preventDefault();
+      if (!loading && verificationCode.length === 6) {
+          verifyCode();
+      }
+  };
+
+  const resetState = () => {
+    setStep('initial');
+    setQrCode('');
+    setSecret('');
+    setFactorId('');
+    setVerificationCode('');
+    setLoading(false);
+  };
+
+  const handleOpenChange = (open) => {
+    if (!open) {
+      resetState();
+    }
+    onOpenChange(open);
+  };
+
+  const copySecret = () => {
+    navigator.clipboard.writeText(secret);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Secret Copied", description: "Paste this into your authenticator app if you can't scan the QR code." });
+  }
+  
+  const renderContent = () => {
+    switch (step) {
+      case 'qr':
+        return (
+          <>
+            <DialogHeader>
+              <DialogTitle>Step 1: Scan QR Code</DialogTitle>
+              <DialogDescription>Scan the QR code below with your authenticator app (e.g., Google Authenticator, Authy).</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center p-4 gap-4">
+              <div className="bg-white p-4 rounded-lg border shadow-sm">
+                 {qrCode ? (
+                      <img src={qrCode} alt="2FA QR Code" className="w-48 h-48 mx-auto"/>
+                  ) : <Loader2 className="w-12 h-12 animate-spin text-primary" />}
+              </div>
+              
+              <div className="w-full text-center">
+                  <p className="text-sm text-muted-foreground mb-2">Can't scan? Enter this code manually:</p>
+                  <div className="flex items-center justify-center gap-2 bg-muted p-2 rounded-md font-mono text-sm">
+                      <span>{secret}</span>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copySecret}>
+                          {copied ? <Check className="h-3 w-3 text-green-500"/> : <Copy className="h-3 w-3"/>}
+                      </Button>
+                  </div>
+              </div>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setStep('initial')} className="w-full sm:w-auto">Back</Button>
+                <Button onClick={() => setStep('verify')} className="w-full sm:w-auto">Next Step</Button>
+            </DialogFooter>
+          </>
+        );
+      case 'verify':
+        return (
+          <form onSubmit={handleVerifySubmit}>
+            <DialogHeader>
+              <DialogTitle>Step 2: Verify Code</DialogTitle>
+              <DialogDescription>Enter the 6-digit code generated by your authenticator app.</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-6 py-6">
+                <div className="p-3 bg-primary/10 rounded-full">
+                    <KeyRound className="w-8 h-8 text-primary" />
+                </div>
+                <InputOTP maxLength={6} value={verificationCode} onChange={setVerificationCode}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+                <p className="text-xs text-muted-foreground">The code changes every 30 seconds</p>
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button type="button" variant="outline" onClick={() => setStep('qr')} className="w-full sm:w-auto">Back</Button>
+                <Button type="submit" disabled={loading || verificationCode.length < 6} className="w-full sm:w-auto">
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                    Verify & Enable
+                </Button>
+            </DialogFooter>
+          </form>
+        );
+      default: // initial
+        return (
+          <>
+            <DialogHeader>
+              <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+              <DialogDescription>Add an extra layer of security to your account. You will need an authenticator app installed on your phone.</DialogDescription>
+            </DialogHeader>
+            <div className="text-center p-8">
+                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-6">
+                    <ShieldCheck className="w-12 h-12 text-green-600" />
+                </div>
+                <ul className="text-left text-sm space-y-2 max-w-xs mx-auto text-muted-foreground">
+                    <li className="flex items-start gap-2"><Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0"/> Protects against password theft</li>
+                    <li className="flex items-start gap-2"><Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0"/> Required for high-privilege actions</li>
+                    <li className="flex items-start gap-2"><Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0"/> Easy to set up and use</li>
+                </ul>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={startEnrollment} disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Begin Setup
+              </Button>
+            </DialogFooter>
+          </>
+        );
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {renderContent()}
+      </DialogContent>
+    </Dialog>
+  );
+};
