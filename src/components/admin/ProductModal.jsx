@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -12,17 +13,6 @@ import { Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
-
-const formVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.05,
-    },
-  }),
-};
 
 const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
     const { toast } = useToast();
@@ -39,10 +29,9 @@ const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
         if (product) {
             setForm({ 
                 name: product.name, 
-                description: product.description, 
+                description: product.description || '', 
                 price: product.price, 
                 unit: product.unit || '', 
-                // If admin, use existing farmer_id. If farmer, ensure it's their own ID.
                 farmer_id: product.farmer_id || (isAdmin ? '' : profile?.id) 
             });
             setInStock(product.stock > 0);
@@ -52,7 +41,6 @@ const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
                 description: '', 
                 price: '', 
                 unit: '', 
-                // If admin, empty start (force selection). If farmer, auto-assign their ID.
                 farmer_id: isAdmin ? '' : (profile?.id || '') 
             });
             setInStock(true);
@@ -61,116 +49,172 @@ const ProductModal = ({ isOpen, onOpenChange, product, farmers, onSave }) => {
     }, [product, isOpen, profile, isAdmin]);
     
     const handleChange = (e) => {
-        setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        setForm(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSelectChange = (val) => {
         setForm(prev => ({...prev, farmer_id: val}));
     };
 
-    const uploadFile = async (file, bucket) => {
+    const uploadFile = async (file) => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file);
+        const { error: uploadError } = await supabase.storage.from('product_images').upload(fileName, file);
         if (uploadError) {
-            toast({ variant: 'destructive', title: 'Image upload failed', description: uploadError.message });
-            return { error: uploadError };
+            throw uploadError;
         }
-        const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-        return { publicUrl: data.publicUrl, error: null };
+        const { data } = supabase.storage.from('product_images').getPublicUrl(fileName);
+        return data.publicUrl;
     };
 
     const handleSubmit = async () => {
-        setLoading(true);
-        let imageUrl = product?.image_url;
-        if (imageFile) {
-            const { publicUrl, error } = await uploadFile(imageFile, 'product_images');
-            if (error) {
-                setLoading(false);
-                return;
-            }
-            imageUrl = publicUrl;
+        // Validation
+        if (!form.name || !form.price || !form.unit) {
+             toast({ variant: 'destructive', title: 'Missing Fields', description: 'Name, Price, and Unit are required.' });
+             return;
         }
-        
-        // Logic to ensure correct farmer_id is used
-        const finalFarmerId = isAdmin ? form.farmer_id : profile?.id;
 
+        const finalFarmerId = isAdmin ? form.farmer_id : profile?.id;
         if (!finalFarmerId) {
-            toast({ variant: 'destructive', title: 'Validation Error', description: 'Farmer identification is missing.' });
-            setLoading(false);
+            toast({ variant: 'destructive', title: 'Validation Error', description: 'Farmer identification is missing. Please select a farmer.' });
             return;
         }
 
-        const productData = { 
-            ...form, 
-            farmer_id: finalFarmerId,
-            image_url: imageUrl, 
-            stock: inStock ? (product?.stock > 0 ? product.stock : 1) : 0 
-        };
+        setLoading(true);
+        try {
+            let imageUrl = product?.image_url;
+            
+            if (imageFile) {
+                try {
+                    imageUrl = await uploadFile(imageFile);
+                } catch (uploadError) {
+                    toast({ variant: 'destructive', title: 'Image Upload Failed', description: uploadError.message });
+                    setLoading(false);
+                    return;
+                }
+            }
+            
+            const productData = { 
+                name: form.name,
+                description: form.description,
+                price: parseFloat(form.price),
+                unit: form.unit,
+                farmer_id: finalFarmerId,
+                image_url: imageUrl, 
+                stock: inStock ? (product?.stock > 0 ? product.stock : 10) : 0 
+            };
 
-        const { error } = product
-          ? await supabase.from('products').update(productData).eq('id', product.id)
-          : await supabase.from('products').insert(productData);
+            const { error } = product
+              ? await supabase.from('products').update(productData).eq('id', product.id)
+              : await supabase.from('products').insert(productData);
 
-        if (error) {
+            if (error) throw error;
+
+            toast({ title: `Product ${product ? 'updated' : 'created'} successfully!` });
+            onSave(); // This closes modal and refreshes data
+        } catch (error) {
             toast({ variant: 'destructive', title: 'Failed to save product', description: error.message });
-        } else {
-            toast({ title: `Product ${product ? 'updated' : 'created'}` });
-            onSave();
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-6 pb-2">
                     <DialogTitle>{product ? 'Edit Product' : 'Add New Product'}</DialogTitle>
                     <DialogDescription>
                         Fill in the details below. Click save when you're done.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
-                    <motion.div variants={formVariants} initial="hidden" animate="visible" custom={0}>
-                      <Label htmlFor="name">Product Name</Label>
-                      <Input id="name" name="name" placeholder="e.g. Organic Tomatoes" value={form.name} onChange={handleChange} />
-                    </motion.div>
-                    <motion.div variants={formVariants} initial="hidden" animate="visible" custom={1}>
-                       <Label htmlFor="description">Description</Label>
-                      <Textarea id="description" name="description" placeholder="Product details" value={form.description} onChange={handleChange} />
-                    </motion.div>
-                    <motion.div variants={formVariants} initial="hidden" animate="visible" custom={2}>
-                      <Label htmlFor="price">Price (GHS)</Label>
-                      <Input id="price" name="price" placeholder="e.g. 15.50" type="number" value={form.price} onChange={handleChange} />
-                    </motion.div>
-                    <motion.div variants={formVariants} initial="hidden" animate="visible" custom={3}>
-                      <Label htmlFor="unit">Unit</Label>
-                      <Input id="unit" name="unit" placeholder="e.g., kg, bunch" value={form.unit} onChange={handleChange} />
-                    </motion.div>
-                     <motion.div variants={formVariants} initial="hidden" animate="visible" custom={4} className="flex items-center space-x-2 pt-2">
-                        <Checkbox id="inStock" checked={inStock} onCheckedChange={setInStock} />
-                        <Label htmlFor="inStock" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                            Product is in stock
-                        </Label>
-                     </motion.div>
+                
+                <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-4">
+                    {/* Explicitly using vertical stacking for labels and inputs to prevent overlap */}
+                    <div className="grid gap-2">
+                        <Label htmlFor="name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Product Name *</Label>
+                        <Input 
+                            id="name" 
+                            name="name" 
+                            placeholder="e.g. Organic Tomatoes" 
+                            value={form.name} 
+                            onChange={handleChange}
+                            className="bg-white border-gray-200"
+                        />
+                    </div>
                     
-                    {/* Only show Farmer Selection for Admins */}
+                    <div className="grid gap-2">
+                        <Label htmlFor="description" className="text-sm font-medium leading-none">Description</Label>
+                        <Textarea 
+                            id="description" 
+                            name="description" 
+                            placeholder="Describe your product..." 
+                            value={form.description} 
+                            onChange={handleChange} 
+                            className="bg-white border-gray-200"
+                        />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="price" className="text-sm font-medium leading-none">Price (GHS) *</Label>
+                            <Input 
+                                id="price" 
+                                name="price" 
+                                placeholder="0.00" 
+                                type="number" 
+                                step="0.01" 
+                                value={form.price} 
+                                onChange={handleChange}
+                                className="bg-white border-gray-200" 
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="unit" className="text-sm font-medium leading-none">Unit *</Label>
+                            <Input 
+                                id="unit" 
+                                name="unit" 
+                                placeholder="e.g. kg, basket" 
+                                value={form.unit} 
+                                onChange={handleChange} 
+                                className="bg-white border-gray-200"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 border p-3 rounded-md bg-gray-50">
+                        <Checkbox id="inStock" checked={inStock} onCheckedChange={setInStock} />
+                        <Label htmlFor="inStock" className="cursor-pointer">
+                            Product is In Stock
+                        </Label>
+                    </div>
+                    
                     {isAdmin && (
-                        <motion.div variants={formVariants} initial="hidden" animate="visible" custom={5}>
+                        <div className="grid gap-2">
                             <Label>Farmer *</Label>
                             <Select onValueChange={handleSelectChange} value={form.farmer_id}>
-                                <SelectTrigger className="w-full"><SelectValue placeholder="Select Farmer" /></SelectTrigger>
-                                <SelectContent>{farmers.map(f => <SelectItem key={f.id} value={f.id}>{f.full_name || 'Unknown Farmer'}</SelectItem>)}</SelectContent>
+                                <SelectTrigger className="w-full bg-white border-gray-200">
+                                    <SelectValue placeholder="Select a Farmer" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {farmers.map(f => (
+                                        <SelectItem key={f.id} value={f.id}>
+                                            {f.full_name || f.email || 'Unnamed Farmer'}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
                             </Select>
-                        </motion.div>
+                        </div>
                     )}
 
-                    <motion.div variants={formVariants} initial="hidden" animate="visible" custom={6}>
+                    <div className="grid gap-2">
                         <Label>Product Image</Label>
                         <ImageUpload imageFile={imageFile} onFileChange={setImageFile} existingImageUrl={product?.image_url} />
-                    </motion.div>
+                    </div>
                 </div>
-                <DialogFooter>
+
+                <DialogFooter className="p-6 pt-2 border-t mt-auto">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                     <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90" disabled={loading}>
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

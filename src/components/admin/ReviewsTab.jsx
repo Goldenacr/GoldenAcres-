@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { motion } from 'framer-motion';
@@ -252,7 +253,7 @@ const ReviewsTab = () => {
                     <DialogHeader>
                         <DialogTitle>Reply to Review</DialogTitle>
                         <DialogDescription>
-                            Replying as <span className="font-semibold text-orange-600">Golden Acres Team</span>. Your reply will be marked as official.
+                            Replying as <span className="font-semibold text-orange-600">Agribridge Team</span>. Your reply will be marked as official.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-2">

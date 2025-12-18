@@ -1,182 +1,198 @@
 
 import React, { useState } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
-import { Trash2, Home, Warehouse, HelpCircle } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { supabase } from '@/lib/customSupabaseClient';
-
-const orderStatuses = [
-    'Order Placed',
-    'Rider Dispatched to Farm',
-    'Products Picked Up',
-    'Out for Delivery',
-    'Delivered',
-    'Cancelled'
-];
-
-
-const DeliveryInfo = ({ info }) => {
-    const [hubName, setHubName] = useState(null);
-    const [loadingHub, setLoadingHub] = useState(false);
-
-    React.useEffect(() => {
-        if (info?.method === 'Pickup' && info.hub_id) {
-            setLoadingHub(true);
-            const fetchHubName = async () => {
-                const { data, error } = await supabase.from('pickup_hubs').select('name').eq('id', info.hub_id).single();
-                if (!error && data) {
-                    setHubName(data.name);
-                } else {
-                    setHubName('Unknown Hub');
-                }
-                setLoadingHub(false);
-            };
-            fetchHubName();
-        }
-    }, [info]);
-    
-    if (!info) {
-        return (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <HelpCircle className="h-4 w-4" />
-                            <span>Legacy</span>
-                        </div>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Delivery info not available for this order.</p></TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
-    }
-    
-    if (info.method === 'Delivery') {
-        return (
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2">
-                           <Home className="h-4 w-4 text-blue-500" />
-                           <span>Home Delivery</span>
-                        </div>
-                    </TooltipTrigger>
-                    <TooltipContent><p>{info.address || 'Address not specified'}</p></TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
-    }
-
-    if (info.method === 'Pickup') {
-        return (
-             <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <div className="flex items-center gap-2">
-                           <Warehouse className="h-4 w-4 text-green-500" />
-                           <span>Pickup Hub</span>
-                        </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        {loadingHub ? <p>Loading hub name...</p> : <p>{hubName || 'Hub not specified'}</p>}
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-        );
-    }
-
-    return (
-        <div className="flex items-center gap-2 text-muted-foreground">
-            <HelpCircle className="h-4 w-4" />
-            <span>Not specified</span>
-        </div>
-    );
-};
-
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Trash, Eye, MapPin } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const OrdersTab = ({ orders, onStatusUpdate, onDelete }) => {
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Delivered': return 'bg-green-500 hover:bg-green-600';
+      case 'Cancelled': return 'bg-red-500 hover:bg-red-600';
+      case 'Out for Delivery': return 'bg-yellow-500 hover:bg-yellow-600';
+      case 'Order Placed': return 'bg-blue-500 hover:bg-blue-600';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-GH', { style: 'currency', currency: 'GHS' }).format(price);
+  };
+
+  // Helper to extract hub name from JSON delivery_info or just show "Home Delivery"
+  const getDeliveryDisplay = (order) => {
+    if (!order.delivery_info) return 'N/A';
     
-    const getFarmerNames = (orderItems) => {
-        if (!orderItems || orderItems.length === 0) return 'N/A';
-        const names = [...new Set(orderItems.map(item => item.farmer_name).filter(Boolean))];
-        return names;
-    };
+    // Check if it's a simple string or JSON object
+    if (typeof order.delivery_info === 'string') {
+         // Attempt to parse if it's a JSON string, otherwise return as is
+         try {
+             const parsed = JSON.parse(order.delivery_info);
+             if (parsed.method === 'Pickup') return `Pickup: ${parsed.hub_name || parsed.hub_id || 'Unknown Hub'}`;
+             return parsed.address || 'Home Delivery';
+         } catch {
+             return order.delivery_info;
+         }
+    }
     
-    return (
-        <div className="space-y-4">
-            <h3 className="text-xl font-semibold">Manage Orders</h3>
-            <div className="border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Order ID</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Customer</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Farmer(s)</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Delivery Method</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Total</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
-                                <th className="p-3 text-left font-medium text-muted-foreground">Date</th>
-                                <th className="p-3 text-right font-medium text-muted-foreground">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {orders.map((o, index) => {
-                                const farmerNames = getFarmerNames(o.order_items);
-                                return (
-                                    <motion.tr
-                                        key={o.id}
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="bg-white hover:bg-gray-50/50"
-                                    >
-                                        <td className="p-3 font-mono text-xs">{o.id.substring(0, 8)}...</td>
-                                        <td className="p-3">{o.customer_name}</td>
-                                        <td className="p-3 text-muted-foreground">
-                                            {farmerNames === 'N/A' ? 'N/A' : farmerNames.length > 1 ? (
-                                                 <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <span className="cursor-pointer underline decoration-dotted">Multiple ({farmerNames.length})</span>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent><p>{farmerNames.join(', ')}</p></TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            ) : ( farmerNames[0] )}
-                                        </td>
-                                        <td className="p-3">
-                                            <DeliveryInfo info={o.delivery_info} />
-                                        </td>
-                                        <td className="p-3">GHS {Number(o.total_amount).toLocaleString()}</td>
-                                        <td className="p-3">
-                                            <Select onValueChange={(newStatus) => onStatusUpdate(o.id, newStatus)} value={o.status}>
-                                                <SelectTrigger className="w-[180px] h-9 text-xs">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {orderStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </td>
-                                        <td className="p-3 text-muted-foreground">{new Date(o.created_at).toLocaleDateString()}</td>
-                                        <td className="p-3 text-right">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(o)}>
-                                                <Trash2 className="h-4 w-4 text-red-500" />
-                                            </Button>
-                                        </td>
-                                    </motion.tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+    if (order.delivery_info.method === 'Pickup') {
+        return `Pickup: ${order.delivery_info.hub_name || 'Hub #' + order.delivery_info.hub_id || 'Hub'}`;
+    }
+    return 'Home Delivery';
+  };
+
+  return (
+    <>
+    <div className="rounded-md border bg-white">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Order ID</TableHead>
+            <TableHead>Customer</TableHead>
+            <TableHead>Total</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Delivery Method</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7} className="h-24 text-center">
+                No orders found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium">{order.id.substring(0, 8)}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{order.customer_name || 'Guest'}</span>
+                    <span className="text-xs text-muted-foreground">{order.customer_phone || 'No phone'}</span>
+                  </div>
+                </TableCell>
+                <TableCell>{formatPrice(order.total_amount)}</TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                </TableCell>
+                <TableCell>
+                   <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <MapPin className="w-3 h-3" />
+                      {getDeliveryDisplay(order)}
+                   </div>
+                </TableCell>
+                <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setSelectedOrder(order)}>
+                        <Eye className="mr-2 h-4 w-4" /> View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => onStatusUpdate(order.id, 'Order Placed')}>Order Placed</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onStatusUpdate(order.id, 'Out for Delivery')}>Out for Delivery</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onStatusUpdate(order.id, 'Delivered')}>Delivered</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onStatusUpdate(order.id, 'Cancelled')} className="text-red-600">Cancelled</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onDelete(order)} className="text-red-600">
+                        <Trash className="mr-2 h-4 w-4" /> Delete Order
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+
+    {/* Order Details Modal */}
+    <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-3xl">
+            <DialogHeader>
+                <DialogTitle>Order Details - #{selectedOrder?.id?.substring(0,8)}</DialogTitle>
+            </DialogHeader>
+            {selectedOrder && (
+                <div className="grid gap-6 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 className="font-semibold mb-2">Customer Info</h4>
+                            <p className="text-sm">Name: {selectedOrder.customer_name}</p>
+                            <p className="text-sm">Phone: {selectedOrder.customer_phone}</p>
+                            <p className="text-sm">Email: {selectedOrder.user_email || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-2">Delivery Info</h4>
+                            <p className="text-sm font-medium text-primary">{getDeliveryDisplay(selectedOrder)}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 className="font-semibold mb-2">Order Items</h4>
+                        <div className="border rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Product</TableHead>
+                                        <TableHead>Farmer</TableHead>
+                                        <TableHead>Qty</TableHead>
+                                        <TableHead className="text-right">Price</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {selectedOrder.order_items?.map((item, idx) => (
+                                        <TableRow key={idx}>
+                                            <TableCell>{item.product_name}</TableCell>
+                                            <TableCell>{item.farmer_name || 'N/A'}</TableCell>
+                                            <TableCell>{item.quantity}</TableCell>
+                                            <TableCell className="text-right">{formatPrice(item.price)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-4 border-t">
+                        <span className="font-bold text-lg">Total Amount</span>
+                        <span className="font-bold text-2xl text-primary">{formatPrice(selectedOrder.total_amount)}</span>
+                    </div>
                 </div>
-            </div>
-             {orders.length === 0 && <p className="text-center text-muted-foreground py-8">No orders found.</p>}
-        </div>
-    );
+            )}
+        </DialogContent>
+    </Dialog>
+    </>
+  );
 };
 
 export default OrdersTab;
