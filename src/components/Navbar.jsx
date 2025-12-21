@@ -85,7 +85,7 @@ const DropdownMenu = memo(({ profile, handleLogout }) => {
 
 
 const MobileMenu = ({ isOpen, setIsOpen, user, profile, handleLogout }) => {
-  const agribridgeLogoUrl = '/vite.svg'; // User can update this URL
+  const agribridgeLogoUrl = '/site.svg'; // User can update this URL
 
   const getDashboardLink = useCallback(() => {
     if (!profile) return '/login';
@@ -201,7 +201,7 @@ const Navbar = () => {
   const location = useLocation();
 
   // Define the logo URL here, making it easy to update
-  const agribridgeLogoUrl = '/vite.svg'; // This points to the file in the public folder
+  const agribridgeLogoUrl = '/site.svg'; // This points to the file in the public folder
 
   useEffect(() => {
     setIsOpen(false);
@@ -300,3 +300,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+                  
