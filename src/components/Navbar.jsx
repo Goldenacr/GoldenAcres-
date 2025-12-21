@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -85,7 +84,8 @@ const DropdownMenu = memo(({ profile, handleLogout }) => {
 
 
 const MobileMenu = ({ isOpen, setIsOpen, user, profile, handleLogout }) => {
-  const agribridgeLogoUrl = '/site.svg'; // User can update this URL
+  // Round logo image for mobile menu
+  const agribridgeLogoUrl = 'https://zuctusbetucsmsywshyk.supabase.co/storage/v1/object/public/imgurl/81ospn_1766280462621.jpg';
 
   const getDashboardLink = useCallback(() => {
     if (!profile) return '/login';
@@ -128,7 +128,14 @@ const MobileMenu = ({ isOpen, setIsOpen, user, profile, handleLogout }) => {
         >
             <div className="flex justify-between items-center p-4 border-b dark:border-gray-800 shrink-0">
                 <Link to="/" onClick={() => setIsOpen(false)}>
-                    <img src={agribridgeLogoUrl} alt="Agribridge Logo" className="h-12 w-auto" />
+                    {/* Rounded logo for mobile */}
+                    <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-md">
+                      <img 
+                        src={agribridgeLogoUrl} 
+                        alt="Agribridge Logo" 
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
                 </Link>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setIsOpen(false)}>
                     <X className="w-6 h-6 text-gray-700 dark:text-gray-200" />
@@ -200,8 +207,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Define the logo URL here, making it easy to update
-  const agribridgeLogoUrl = '/site.svg'; // This points to the file in the public folder
+  // Your image URL in round form
+  const agribridgeLogoUrl = 'https://zuctusbetucsmsywshyk.supabase.co/storage/v1/object/public/imgurl/81ospn_1766280462621.jpg';
 
   useEffect(() => {
     setIsOpen(false);
@@ -227,10 +234,21 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          <Link to="/" className="flex items-center space-x-2">
-            <motion.div whileHover={{ scale: 1.05, rotate: -5 }} whileTap={{scale: 0.95}}>
-              <img src={agribridgeLogoUrl} alt="Agribridge Logo" className="h-16 w-auto" />
+          <Link to="/" className="flex items-center space-x-3">
+            {/* Rounded logo container */}
+            <motion.div 
+              whileHover={{ scale: 1.05, rotate: -5 }} 
+              whileTap={{scale: 0.95}}
+              className="h-14 w-14 rounded-full overflow-hidden border-2 border-gray-300 dark:border-gray-600 shadow-lg"
+            >
+              <img 
+                src={agribridgeLogoUrl} 
+                alt="Agribridge Logo" 
+                className="h-full w-full object-cover"
+              />
             </motion.div>
+            {/* Optional: Add text next to the logo */}
+            <span className="text-xl font-bold text-gray-800 dark:text-white">Agribridge</span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-8 font-medium">
@@ -300,4 +318,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-                  
