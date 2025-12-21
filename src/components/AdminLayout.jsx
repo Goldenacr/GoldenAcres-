@@ -59,7 +59,7 @@ const AdminLayout = () => {
     <div className="flex flex-col h-full bg-slate-950 text-slate-200">
       <div className="p-6 border-b border-slate-800">
         <h1 className="text-xl font-bold text-white flex items-center gap-2">
-           <img src="https://horizons-cdn.hostinger.com/1ff2a2eb-9cef-439f-b1c4-73368cb28fdf/dee3e90e0fad3a78c5aad3fa165b27b3.jpg" alt="Logo" className="w-8 h-8 rounded-full" />
+           <img src="https://zuctusbetucsmsywshyk.supabase.co/storage/v1/object/public/imgurl/81ospn_1766280462621.jpg" alt="Logo" className="w-8 h-8 rounded-full" />
            Agribridge
         </h1>
         <p className="text-xs text-slate-400 mt-1">Admin Control Panel</p>
@@ -132,3 +132,4 @@ const AdminLayout = () => {
 };
 
 export default AdminLayout;
+      
