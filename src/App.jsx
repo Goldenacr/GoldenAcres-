@@ -54,6 +54,7 @@ const AdminReviewsPage = React.lazy(() => import('@/pages/admin/AdminReviewsPage
 const AdminPickupHubsPage = React.lazy(() => import('@/pages/admin/AdminPickupHubsPage'));
 const AdminSettingsPage = React.lazy(() => import('@/pages/admin/AdminSettingsPage'));
 const AdminMassDeliveryPage = React.lazy(() => import('@/pages/admin/AdminMassDeliveryPage'));
+const AdminCountriesPage = React.lazy(() => import('@/pages/admin/AdminCountriesPage'));
 
 
 const PageLoader = () => (
@@ -91,6 +92,7 @@ function App() {
                         <Route path="reviews" element={<AdminReviewsPage />} />
                         <Route path="pickup-hubs" element={<AdminPickupHubsPage />} />
                         <Route path="settings" element={<AdminSettingsPage />} />
+                        <Route path="countries" element={<AdminCountriesPage />} />
                       </Route>
                       <Route path="/*" element={
                         <RequireProfileCompletion>
@@ -147,4 +149,3 @@ function App() {
 }
 
 export default App;
-    
