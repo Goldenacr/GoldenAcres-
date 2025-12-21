@@ -294,7 +294,8 @@ export default function RegisterPage() {
                 <div className="w-full max-w-2xl">
                     <div className="text-center mb-8">
                         <Link to="/" className="inline-block mb-4">
-                          <img src="https://zuctusbetucsmsywshyk.supabase.co/storage/v1/object/public/imgurl/81ospn_1766280462621.jpg" />
+                          <img src="https://zuctusbetucsmsywshyk.supabase.co/storage/v1/object/public/imgurl/81ospn_1766280462621.jpg"
+                          alt="Agribridge Logo" className="h-24 w-24 rounded-full mx-auto shadow-md" />
                         </Link>
                          <h1 className="text-4xl font-bold tracking-tight">Create an Account</h1>
                          <p className="text-muted-foreground mt-2">Join our community of fresh produce lovers.</p>
