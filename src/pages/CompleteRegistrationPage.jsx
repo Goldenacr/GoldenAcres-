@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -221,14 +220,17 @@ export default function CompleteRegistrationPage() {
             const age = Math.abs(ageDate.getUTCFullYear() - 1970);
             
             const updates = {
+                id: user.id, // Ensure ID is present for Upsert
+                email: user.email,
                 ...data,
                 age: age,
+                updated_at: new Date(),
             };
 
+            // Use upsert instead of update to handle cases where profile might be missing (e.g. after deletion)
             const { error } = await supabase
                 .from('profiles')
-                .update(updates)
-                .eq('id', user.id);
+                .upsert(updates);
 
             if (error) throw error;
             
@@ -320,7 +322,10 @@ export default function CompleteRegistrationPage() {
                 <div className="w-full max-w-2xl">
                     <div className="text-center mb-8">
                          <h1 className="text-4xl font-bold tracking-tight">Complete Your Profile</h1>
-                         <p className="text-muted-foreground mt-2">We just need a few more details to finish setting up your account.</p>
+                         <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
+                            We just need a few more details to finish setting up your account. 
+                            If you are applying to become a farmer or re-registering again, please ensure your details are accurate.
+                        </p>
                     </div>
 
                     <FormProvider {...methods}>
@@ -402,4 +407,4 @@ export default function CompleteRegistrationPage() {
             </div>
         </>
     );
-}
+          }
